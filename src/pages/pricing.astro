@@ -1,0 +1,140 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTASection from "../components/CTASection.astro";
+
+const tiers = [
+  {
+    name: "Free",
+    price: "$0",
+    cadence: "forever",
+    blurb: "For casual and training games.",
+    features: ["Live scoreboard", "Game clock", "Big screen mode", "1 active game"],
+    cta: "Join early access",
+    featured: false,
+  },
+  {
+    name: "Club",
+    price: "TBC",
+    cadence: "per season",
+    blurb: "For clubs running regular fixtures.",
+    features: ["Everything in Free", "Unlimited games", "Team names & colours", "Shareable spectator links"],
+    cta: "Join early access",
+    featured: true,
+  },
+  {
+    name: "Tournament",
+    price: "TBC",
+    cadence: "per event",
+    blurb: "For organisers running full events.",
+    features: ["Everything in Club", "Brackets & tournaments", "Stats & rosters", "Multi-court dashboard"],
+    cta: "Talk to us",
+    featured: false,
+  },
+];
+---
+
+<BaseLayout
+  title="Pricing — GameBoard.live"
+  description="Simple pricing for clubs, schools and tournament organisers. Final pricing lands with early access."
+>
+  <section class="section">
+    <div class="container text-center section-head">
+      <p class="eyebrow">Pricing</p>
+      <h1>Simple pricing, no surprises</h1>
+      <p>Pricing is being finalised with our early access partners. Lock in your spot now.</p>
+    </div>
+
+    <div class="container">
+      <div class="grid grid-3">
+        {
+          tiers.map((t) => (
+            <article class:list={["tier", { featured: t.featured }]}>
+              {t.featured && <span class="tag">Most popular</span>}
+              <h2>{t.name}</h2>
+              <p class="price">
+                <strong>{t.price}</strong> <span>/ {t.cadence}</span>
+              </p>
+              <p class="blurb">{t.blurb}</p>
+              <ul>
+                {t.features.map((f) => <li>{f}</li>)}
+              </ul>
+              <a href="/#early-access" class:list={["btn", t.featured ? "btn-primary" : "btn-secondary"]}>
+                {t.cta}
+              </a>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <CTASection title="Pricing not final yet" subtitle="Join early access and help shape the plans — early partners get launch pricing." />
+</BaseLayout>
+
+<style>
+  .section-head {
+    max-width: 640px;
+    margin-inline: auto;
+    margin-bottom: var(--space-4);
+  }
+  h1 {
+    font-size: clamp(2rem, 6vw, 3rem);
+  }
+  .tier {
+    position: relative;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .tier.featured {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow);
+  }
+  .tag {
+    position: absolute;
+    top: -0.7rem;
+    right: var(--space-2);
+    background: var(--color-accent);
+    color: #04231a;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+  }
+  .price strong {
+    font-size: 2rem;
+    color: var(--color-text);
+  }
+  .price span {
+    color: var(--color-text-muted);
+  }
+  .blurb {
+    min-height: 2.5rem;
+  }
+  ul {
+    list-style: none;
+    margin: 0 0 var(--space-2);
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+    flex: 1;
+  }
+  li {
+    padding-left: 1.5rem;
+    position: relative;
+    color: var(--color-text);
+  }
+  li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--color-accent);
+    font-weight: 800;
+  }
+</style>

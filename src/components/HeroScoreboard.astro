@@ -1,0 +1,142 @@
+---
+// Static, CSS-only scoreboard visual. No JS, no stock imagery.
+---
+
+<div class="scoreboard" role="img" aria-label="Live scoreboard showing Home 62, Away 58, clock 04:21 in the fourth quarter">
+  <div class="board-top">
+    <span class="live"><span class="pulse"></span>LIVE</span>
+    <span class="period">Q4</span>
+  </div>
+
+  <div class="teams">
+    <div class="team home">
+      <span class="name">HOME</span>
+      <span class="score">62</span>
+    </div>
+
+    <div class="clock">
+      <span class="time">04:21</span>
+      <span class="label">CLOCK</span>
+    </div>
+
+    <div class="team away">
+      <span class="name">AWAY</span>
+      <span class="score">58</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .scoreboard {
+    background: linear-gradient(180deg, var(--color-surface), var(--color-bg-elevated));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: var(--space-3);
+    width: 100%;
+  }
+
+  .board-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+  }
+
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    color: var(--color-danger);
+  }
+
+  .pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    box-shadow: 0 0 0 0 rgba(255, 92, 122, 0.6);
+    animation: pulse 1.6s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 92, 122, 0.6);
+    }
+    70% {
+      box-shadow: 0 0 0 12px rgba(255, 92, 122, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 92, 122, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse {
+      animation: none;
+    }
+  }
+
+  .period {
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+  }
+
+  .teams {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .name {
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .score {
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: clamp(3.5rem, 14vw, 6rem);
+    line-height: 1;
+    color: var(--color-score);
+    text-shadow: 0 0 24px rgba(255, 210, 63, 0.35);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-inline: var(--space-1);
+  }
+
+  .time {
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: clamp(1.5rem, 6vw, 2.4rem);
+    color: var(--color-accent);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(0, 229, 160, 0.35);
+  }
+
+  .label {
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-top: 0.2rem;
+  }
+</style>

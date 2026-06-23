@@ -1,0 +1,224 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import HeroScoreboard from "../components/HeroScoreboard.astro";
+import FeatureCard from "../components/FeatureCard.astro";
+
+const steps = [
+  { n: "1", title: "Create a game", text: "Add team names and start a new match in seconds." },
+  { n: "2", title: "Control score & clock", text: "Tap to score and run the game clock from your phone." },
+  { n: "3", title: "Display on TV/projector", text: "Open big screen mode on any display in the venue." },
+  { n: "4", title: "Share live link", text: "Send spectators a link to follow the score live." },
+];
+
+const useCases = [
+  { icon: "🏀", title: "Basketball clubs", text: "Run league and friendly games with a proper scoreboard." },
+  { icon: "🏫", title: "School tournaments", text: "Keep every court in sync across a busy event day." },
+  { icon: "🤝", title: "Community leagues", text: "Give volunteers a tool that just works on any phone." },
+  { icon: "🏋️", title: "Training games", text: "Score scrimmages and drills without extra hardware." },
+];
+
+const features = [
+  { icon: "📊", title: "Live scoreboard", description: "A clear, real-time score that updates the moment you tap." },
+  { icon: "📺", title: "Big screen mode", description: "Full-screen display tuned for TVs and projectors." },
+  { icon: "📱", title: "Mobile spectator view", description: "Spectators follow the score on their own phones." },
+  { icon: "⏱️", title: "Game clock", description: "Start, stop and adjust the clock with one hand." },
+  { icon: "🎨", title: "Team names & colours", description: "Brand each game with your team names and colours." },
+  { icon: "📈", title: "Stats, rosters, brackets", description: "Deeper tournament tools are on the roadmap.", badge: "Future" },
+];
+---
+
+<BaseLayout>
+  <!-- Hero -->
+  <section class="hero section">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Live sports scoreboards</p>
+        <h1>Live scoreboards for every game</h1>
+        <p class="lede">
+          Run the scoreboard from your phone, show it on the big screen, and share
+          live scores with every spectator.
+        </p>
+        <div class="hero-actions">
+          <a href="#early-access" class="btn btn-primary">Join early access</a>
+          <a href="#how-it-works" class="btn btn-secondary">See how it works</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <HeroScoreboard />
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works" class="section">
+    <div class="container">
+      <div class="text-center section-head">
+        <p class="eyebrow">How it works</p>
+        <h2>From whistle to final score in four steps</h2>
+      </div>
+      <ol class="steps grid grid-4">
+        {
+          steps.map((s) => (
+            <li class="step">
+              <span class="step-n">{s.n}</span>
+              <h3>{s.title}</h3>
+              <p>{s.text}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- Use cases -->
+  <section class="section alt">
+    <div class="container">
+      <div class="text-center section-head">
+        <p class="eyebrow">Who it's for</p>
+        <h2>Built for the way teams actually play</h2>
+      </div>
+      <div class="grid grid-4">
+        {useCases.map((u) => <FeatureCard icon={u.icon} title={u.title} description={u.text} />)}
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section">
+    <div class="container">
+      <div class="text-center section-head">
+        <p class="eyebrow">Features</p>
+        <h2>Everything you need on game day</h2>
+      </div>
+      <div class="grid grid-3">
+        {
+          features.map((f) => (
+            <FeatureCard icon={f.icon} title={f.title} description={f.description} badge={f.badge} />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Early access form -->
+  <section id="early-access" class="section alt">
+    <div class="container form-wrap text-center">
+      <p class="eyebrow">Early access</p>
+      <h2>Be first on the court</h2>
+      <p>Leave your email and we'll invite you when GameBoard.live opens up.</p>
+
+      <!-- Placeholder form: does not submit anywhere yet. -->
+      <form class="early-form" onsubmit="return false;" aria-label="Early access sign up">
+        <label class="visually-hidden" for="email">Email address</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="you@club.com"
+          required
+          autocomplete="email"
+        />
+        <button type="submit" class="btn btn-primary">Request invite</button>
+      </form>
+      <p class="form-note">No spam — just an invite when we launch.</p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    padding-block: var(--space-5);
+  }
+  .hero-grid {
+    display: grid;
+    gap: var(--space-4);
+    align-items: center;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 7vw, 3.6rem);
+  }
+  .lede {
+    font-size: 1.15rem;
+    max-width: 48ch;
+  }
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  .section-head {
+    max-width: 640px;
+    margin-inline: auto;
+    margin-bottom: var(--space-4);
+  }
+
+  .alt {
+    background: var(--color-bg-elevated);
+    border-block: 1px solid var(--color-border);
+  }
+
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: step;
+  }
+  .step {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+  }
+  .step-n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #04231a;
+    font-weight: 800;
+    margin-bottom: var(--space-1);
+  }
+  .step h3 {
+    font-size: 1.1rem;
+  }
+
+  .form-wrap {
+    max-width: 560px;
+    margin-inline: auto;
+  }
+  .early-form {
+    display: flex;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .early-form input {
+    flex: 1 1 240px;
+    padding: 0.85rem 1rem;
+    border-radius: 999px;
+    border: 2px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 1rem;
+  }
+  .early-form input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+  .form-note {
+    font-size: 0.85rem;
+    margin-top: var(--space-2);
+  }
+
+  @media (min-width: 880px) {
+    .hero-grid {
+      grid-template-columns: 1.1fr 1fr;
+    }
+  }
+</style>

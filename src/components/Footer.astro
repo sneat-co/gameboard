@@ -1,0 +1,108 @@
+---
+const year = new Date().getFullYear();
+const groups = [
+  {
+    title: "Product",
+    links: [
+      { href: "/features", label: "Features" },
+      { href: "/pricing", label: "Pricing" },
+      { href: "/#early-access", label: "Early access" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { href: "/about", label: "About" },
+      { href: "/contact", label: "Contact" },
+    ],
+  },
+];
+---
+
+<footer class="site-footer">
+  <div class="container cols">
+    <div class="brand-col">
+      <a href="/" class="brand">GameBoard<span class="tld">.live</span></a>
+      <p>Live scoreboards for clubs, schools and tournaments.</p>
+    </div>
+
+    {
+      groups.map((g) => (
+        <nav class="col" aria-label={g.title}>
+          <h3>{g.title}</h3>
+          <ul>
+            {g.links.map((l) => (
+              <li>
+                <a href={l.href}>{l.label}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ))
+    }
+  </div>
+  <div class="container legal">
+    <p>&copy; {year} GameBoard.live. All rights reserved.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    padding-block: var(--space-4) var(--space-2);
+    margin-top: var(--space-5);
+  }
+  .cols {
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: 1fr;
+  }
+  .brand {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--color-text);
+  }
+  .brand:hover {
+    text-decoration: none;
+  }
+  .tld {
+    color: var(--color-accent);
+  }
+  .col h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-1);
+  }
+  .col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .col a {
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+  .col a:hover {
+    color: var(--color-text);
+  }
+  .legal {
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-border);
+  }
+  .legal p {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  @media (min-width: 720px) {
+    .cols {
+      grid-template-columns: 2fr 1fr 1fr;
+    }
+  }
+</style>

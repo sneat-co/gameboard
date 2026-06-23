@@ -1,0 +1,61 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CTASection from "../components/CTASection.astro";
+---
+
+<BaseLayout
+  title="About — GameBoard.live"
+  description="GameBoard.live is building the simplest way to run a live sports scoreboard from your phone."
+>
+  <section class="section">
+    <div class="container prose">
+      <p class="eyebrow">About</p>
+      <h1>We make game day simple</h1>
+      <p>
+        GameBoard.live started courtside, watching volunteers wrestle with clunky
+        consoles and paper score sheets. We thought keeping score should be as easy
+        as picking up your phone.
+      </p>
+      <p>
+        Our mission is to give every club, school and tournament organiser a
+        scoreboard that works on the hardware they already have — a phone to control
+        it, any screen to show it, and a link to share it with the crowd.
+      </p>
+
+      <h2>What we believe</h2>
+      <ul>
+        <li><strong>Simple beats powerful.</strong> The fastest tool is the one people actually use.</li>
+        <li><strong>No special hardware.</strong> Your phone and a screen are enough.</li>
+        <li><strong>Built with clubs.</strong> Every feature comes from real game-day feedback.</li>
+      </ul>
+
+      <p>
+        We're in early access and building in the open. If that sounds like your
+        kind of team, we'd love to have you.
+      </p>
+    </div>
+  </section>
+
+  <CTASection />
+</BaseLayout>
+
+<style>
+  .prose {
+    max-width: 680px;
+  }
+  h1 {
+    font-size: clamp(2rem, 6vw, 3rem);
+  }
+  h2 {
+    margin-top: var(--space-4);
+  }
+  ul {
+    padding-left: 1.2rem;
+    color: var(--color-text-muted);
+    display: grid;
+    gap: 0.5rem;
+  }
+  ul strong {
+    color: var(--color-text);
+  }
+</style>

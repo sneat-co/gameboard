@@ -1,0 +1,32 @@
+---
+interface Props {
+  title?: string;
+  subtitle?: string;
+}
+const {
+  title = "Ready to run your next game?",
+  subtitle = "Join early access and be first to keep score the GameBoard.live way.",
+} = Astro.props;
+---
+
+<section class="cta section">
+  <div class="container text-center inner">
+    <h2>{title}</h2>
+    <p>{subtitle}</p>
+    <a href="/#early-access" class="btn btn-primary">Join early access</a>
+  </div>
+</section>
+
+<style>
+  .cta {
+    background: linear-gradient(135deg, rgba(0, 229, 160, 0.12), rgba(255, 210, 63, 0.08));
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .inner {
+    max-width: 640px;
+  }
+  .cta h2 {
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+  }
+</style>

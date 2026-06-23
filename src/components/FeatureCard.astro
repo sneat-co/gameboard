@@ -1,0 +1,58 @@
+---
+interface Props {
+  icon?: string;
+  title: string;
+  description: string;
+  badge?: string;
+}
+const { icon = "🏆", title, description, badge } = Astro.props;
+---
+
+<article class="card">
+  <span class="icon" aria-hidden="true">{icon}</span>
+  <h3>
+    {title}
+    {badge && <span class="badge">{badge}</span>}
+  </h3>
+  <p>{description}</p>
+</article>
+
+<style>
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+    height: 100%;
+    transition: border-color 0.2s ease, transform 0.12s ease;
+  }
+  .card:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-3px);
+  }
+  .icon {
+    font-size: 1.8rem;
+    display: block;
+    margin-bottom: var(--space-1);
+  }
+  h3 {
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+  }
+  p {
+    margin: 0;
+  }
+</style>
