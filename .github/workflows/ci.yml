@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main, integration/gameboard-mvp]
+  pull_request:
+
+jobs:
+  backend:
+    name: backend build + test (≥85% coverage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+      - name: Build
+        working-directory: backend
+        run: go build ./...
+      - name: Test with coverage
+        working-directory: backend
+        run: go test ./... -covermode=set -coverprofile=cover.out
+      - name: Enforce coverage floor (≥85%)
+        working-directory: backend
+        run: |
+          pct=$(go tool cover -func=cover.out | grep '^total:' | grep -oE '[0-9.]+%' | tr -d '%')
+          echo "total coverage: ${pct}%"
+          awk -v p="$pct" 'BEGIN{ if (p+0 < 85.0) { print "coverage below 85% floor"; exit 1 } }'

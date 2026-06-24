@@ -1,0 +1,7 @@
+# SpecScore Repo Config Schema: https://specscore.md/repo-config
+
+project:
+    title: gameboard
+    host: github.com
+    org: sneat-co
+    repo: gameboard
