@@ -5,10 +5,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/dal-go/dalgo/adapters/dalgo2memory"
 	et "github.com/sneat-co/gameboard-ext/backend/eventtimeline"
 )
 
-func newSvc() *Service { return NewService(NewMemStore()) }
+func newSvc() *Service { return NewService(NewDalgoStore(dalgo2memory.NewDB())) }
 
 func scoreEvent(id string, ms int64, side et.TeamSide, pts int) et.Event {
 	return et.Event{EventID: id, Type: et.EventScore, Source: et.SourceScorekeeper, WallClockMs: ms, Side: side, Points: pts}
