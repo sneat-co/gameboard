@@ -33,6 +33,20 @@ func main() {
 	db := dalgo2memory.NewDB()
 	gameboard.NewHandler(gameboard.NewService(gameboard.NewDalgoStore(db))).Register(mux)
 
+	// Optionally serve a built SPA (used by the Playwright E2E for same-origin —
+	// the app and API share an origin, so no CORS is needed). Unknown non-API
+	// paths fall back to index.html.
+	if staticDir := os.Getenv("GAMEBOARD_STATIC_DIR"); staticDir != "" {
+		fs := http.FileServer(http.Dir(staticDir))
+		mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+			if _, err := os.Stat(staticDir + r.URL.Path); os.IsNotExist(err) && r.URL.Path != "/" {
+				http.ServeFile(w, r, staticDir+"/index.html")
+				return
+			}
+			fs.ServeHTTP(w, r)
+		})
+	}
+
 	log.Printf("gameboardd listening on %s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("gameboardd failed: %v", err)
