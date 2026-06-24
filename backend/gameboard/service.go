@@ -16,16 +16,20 @@ var ErrInvalidEvent = errors.New("gameboard: invalid event")
 
 // Service appends authorized events and serves the deterministic fold.
 type Service struct {
-	store EventStore
-	games GameStore // optional; set when the store also persists game records
+	store   EventStore
+	games   GameStore   // optional; set when the store also persists game records
+	follows FollowStore // optional; set when the store also persists follow edges
 }
 
 // NewService wires a Service over an EventStore. If the store also implements
-// GameStore (the dalgo store does), game-record create/read is enabled.
+// GameStore / FollowStore (the dalgo store does), those capabilities are enabled.
 func NewService(store EventStore) *Service {
 	s := &Service{store: store}
 	if gs, ok := store.(GameStore); ok {
 		s.games = gs
+	}
+	if fs, ok := store.(FollowStore); ok {
+		s.follows = fs
 	}
 	return s
 }

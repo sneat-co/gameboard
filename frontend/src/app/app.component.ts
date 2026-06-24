@@ -51,6 +51,12 @@ const DEMO_ROSTER: Record<string, Player> = {
           <span class="player">{{ label(id) }}</span>
         }
       </p>
+
+      <p class="follow">
+        <input data-testid="account-id" [value]="accountID" (input)="accountID = asValue($event)" placeholder="Account id (blank = anonymous)" />
+        <button data-testid="follow-home" (click)="followHome()">Follow home team</button>
+        <span data-testid="follow-status">{{ followStatus() }}</span>
+      </p>
     </section>
 
     <section class="console">
@@ -87,6 +93,8 @@ export class AppComponent {
 
   homeName = '';
   awayName = '';
+  accountID = '';
+  readonly followStatus = signal<string>('');
 
   readonly state = signal<GameState>(emptyState());
   private subSeq = 0;
@@ -99,6 +107,16 @@ export class AppComponent {
 
   asValue(e: Event): string {
     return (e.target as HTMLInputElement).value;
+  }
+
+  /** Follow the home team — account-gated: anonymous (no account id) is blocked. */
+  async followHome(): Promise<void> {
+    try {
+      await this.api.follow('team', `${this.gameID()}:home`, this.accountID.trim());
+      this.followStatus.set('following');
+    } catch {
+      this.followStatus.set('account required');
+    }
   }
 
   async createGame(): Promise<void> {

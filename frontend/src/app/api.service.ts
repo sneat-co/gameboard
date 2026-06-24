@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AppendResponse, GameEvent, GameRecord, GameState, newEventID, Side, sourceFor, type EventType } from './contract';
@@ -49,5 +49,14 @@ export class ApiService {
 
   events(gameID: string): Promise<GameEvent[]> {
     return firstValueFrom(this.http.get<GameEvent[]>(this.url(gameID, 'events')));
+  }
+
+  /** Follow a target. Sends the account id (account-gate) when signed in; an
+   * empty accountID is an anonymous viewer and the backend rejects it (401). */
+  follow(targetType: 'game' | 'team' | 'player', targetID: string, accountID: string): Promise<unknown> {
+    const headers = accountID ? new HttpHeaders({ 'X-Account-Id': accountID }) : undefined;
+    return firstValueFrom(
+      this.http.post(`${this.base}/v0/api4gameboard/follows`, { targetType, targetID }, { headers }),
+    );
   }
 }

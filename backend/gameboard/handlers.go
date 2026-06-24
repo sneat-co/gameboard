@@ -27,6 +27,40 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v0/api4gameboard/games/{gameID}/events", h.append)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/events", h.list)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/state", h.state)
+	mux.HandleFunc("POST /v0/api4gameboard/follows", h.follow)
+}
+
+// accountID resolves the calling account from the request.
+//
+// STUB (recorded): production resolves the account from the bearer token behind
+// account-gate. Here the `X-Account-Id` header stands in for a signed-in account;
+// its absence means an anonymous viewer (who may read/share but not follow).
+func accountID(r *http.Request) string {
+	return r.Header.Get("X-Account-Id")
+}
+
+// followRequest is the body of POST /v0/api4gameboard/follows.
+type followRequest struct {
+	TargetType FollowTargetType `json:"targetType"`
+	TargetID   string           `json:"targetID"`
+}
+
+func (h *Handler) follow(w http.ResponseWriter, r *http.Request) {
+	var body followRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid follow body")
+		return
+	}
+	err := h.svc.Follow(r.Context(), accountID(r), body.TargetType, body.TargetID)
+	if err != nil {
+		if errors.Is(err, ErrAnonymousFollow) {
+			writeError(w, http.StatusUnauthorized, "account_required", "follow requires an account")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "internal", "failed to follow")
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]string{"status": "following"})
 }
 
 // createGameRequest is the body of POST /v0/api4gameboard/games.
