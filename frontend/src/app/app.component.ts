@@ -76,6 +76,16 @@ const DEMO_ROSTER: Record<string, Player> = {
       <button data-testid="away-2" (click)="score('away', 2)">Away +2</button>
       <button data-testid="away-foul" (click)="foul('away')">Away foul</button>
       <button data-testid="sub-home" (click)="sub('home')">Sub home</button>
+      <button data-testid="home-2-by-p1" (click)="scoreBy('home', 2, 'p1', 'p2')">Home +2 (p1, assist p2)</button>
+    </section>
+
+    <section class="recap" data-testid="recap">
+      <h3>Box score (points → assists)</h3>
+      <ul>
+        @for (line of boxScore(); track line.id) {
+          <li data-testid="recap-line">{{ line.label }}: {{ line.pts }} pts, {{ line.ast }} ast</li>
+        }
+      </ul>
     </section>
 
     }
@@ -176,6 +186,17 @@ export class AppComponent {
   score(side: TeamSide, points: number): Promise<void> {
     return this.append(this.api.append(this.gameID(), 'score', { side, points }));
   }
+  scoreBy(side: TeamSide, points: number, scorerID: string, assistID?: string): Promise<void> {
+    return this.append(this.api.append(this.gameID(), 'score', { side, points, scorerID, assistID }));
+  }
+  /** Box-score lines (points → assists), ordered by points desc then label. */
+  boxScore(): { id: string; label: string; pts: number; ast: number }[] {
+    const s = this.state();
+    const ids = new Set([...Object.keys(s.playerPoints), ...Object.keys(s.playerAssists)]);
+    return [...ids]
+      .map((id) => ({ id, label: this.label(id), pts: s.playerPoints[id] ?? 0, ast: s.playerAssists[id] ?? 0 }))
+      .sort((a, b) => b.pts - a.pts || a.label.localeCompare(b.label));
+  }
   foul(side: TeamSide): Promise<void> {
     return this.append(this.api.append(this.gameID(), 'team-foul', { side }));
   }
@@ -196,5 +217,7 @@ function emptyState(): GameState {
     timeoutsUsed: { home: 0, away: 0 },
     possession: '',
     onCourt: { home: [], away: [] },
+    playerPoints: {},
+    playerAssists: {},
   };
 }

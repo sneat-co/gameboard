@@ -50,6 +50,8 @@ export interface GameState {
   timeoutsUsed: Record<TeamSide, number>;
   possession: TeamSide | '';
   onCourt: Record<TeamSide, string[]>;
+  playerPoints: Record<string, number>;
+  playerAssists: Record<string, number>;
 }
 
 export interface AppendResponse {

@@ -2,7 +2,7 @@ module github.com/sneat-co/gameboard/backend
 
 go 1.25.0
 
-require github.com/sneat-co/gameboard-ext/backend v0.1.0
+require github.com/sneat-co/gameboard-ext/backend v0.2.0
 
 require (
 	github.com/RoaringBitmap/roaring/v2 v2.18.2 // indirect
