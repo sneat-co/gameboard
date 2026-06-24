@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inBonus, newEventID, sourceFor, type GameState } from './contract';
+import { inBonus, newEventID, publicPlayerLabel, sourceFor, type GameState, type Player } from './contract';
 
 function state(home: number, away: number): GameState {
   return {
@@ -34,5 +34,12 @@ describe('contract helpers', () => {
     const b = newEventID();
     expect(a).toMatch(/^[0-9a-f]{32}$/);
     expect(a).not.toBe(b);
+  });
+
+  it('publicPlayerLabel hides a no-consent minor behind their jersey number', () => {
+    const base: Player = { id: 'x', jersey: '23', name: 'Jordan Minor', isMinor: true, publishConsent: false };
+    expect(publicPlayerLabel(base)).toBe('#23'); // minor, no consent → jersey only
+    expect(publicPlayerLabel({ ...base, publishConsent: true })).toBe('Jordan Minor'); // minor w/ consent → name
+    expect(publicPlayerLabel({ ...base, isMinor: false })).toBe('Jordan Minor'); // adult → name
   });
 });

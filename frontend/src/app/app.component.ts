@@ -1,8 +1,16 @@
 import { Component, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
-import { GameState, inBonus, type TeamSide } from './contract';
+import { GameState, inBonus, publicPlayerLabel, type Player, type TeamSide } from './contract';
 
 const FOUL_LIMIT = 5; // team fouls per period before the bonus
+
+// Demo roster (STUB — production roster/consent come from the team space,
+// sneat-team). Keyed by the player id used in substitution events.
+const DEMO_ROSTER: Record<string, Player> = {
+  p1: { id: 'p1', jersey: '7', name: 'Alex Adult', isMinor: false, publishConsent: false },
+  p2: { id: 'p2', jersey: '23', name: 'Jordan Minor', isMinor: true, publishConsent: false },
+  p3: { id: 'p3', jersey: '11', name: 'Sam Consented', isMinor: true, publishConsent: true },
+};
 
 @Component({
   selector: 'gb-root',
@@ -27,6 +35,12 @@ const FOUL_LIMIT = 5; // team fouls per period before the bonus
         @if (homeBonus()) {<span class="bonus" data-testid="home-bonus">HOME BONUS</span>}
         · Timeouts used H/A: {{ state().timeoutsUsed.home }}/{{ state().timeoutsUsed.away }}
         · Possession: <b data-testid="possession">{{ state().possession || '—' }}</b>
+      </p>
+      <p data-testid="oncourt-home">
+        On court (home):
+        @for (id of state().onCourt.home; track id) {
+          <span class="player">{{ label(id) }}</span>
+        }
       </p>
     </section>
 
@@ -72,6 +86,13 @@ export class AppComponent {
 
   homeBonus(): boolean {
     return inBonus(this.state(), 'home', FOUL_LIMIT);
+  }
+
+  /** Minor-safe public label for an on-court player id (jersey only for a
+   * no-consent minor; falls back to the raw id if not in the roster). */
+  label(id: string): string {
+    const p = DEMO_ROSTER[id];
+    return p ? publicPlayerLabel(p) : id;
   }
 
   private async refresh(): Promise<void> {

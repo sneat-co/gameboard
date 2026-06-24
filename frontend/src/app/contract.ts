@@ -57,6 +57,28 @@ export function inBonus(s: GameState, side: TeamSide, limit: number): boolean {
   return s.teamFouls[opp] >= limit;
 }
 
+/** A rostered player. Roster/consent come from the team space (sneat-team) in
+ * production; modelled here for the public-rendering rule. */
+export interface Player {
+  id: string;
+  jersey: string;
+  name: string;
+  isMinor: boolean;
+  publishConsent: boolean;
+}
+
+/**
+ * Minor-safe public label (verifies sports/gameboard-live#ac:minor-shown-minimally):
+ * a MINOR without publish-consent is shown by JERSEY NUMBER ONLY on public
+ * surfaces; everyone else (adults, or minors with consent) shows their name.
+ */
+export function publicPlayerLabel(p: Player): string {
+  if (p.isMinor && !p.publishConsent) {
+    return `#${p.jersey}`;
+  }
+  return p.name;
+}
+
 /** Canonical source for an event type (mirrors the backend authority matrix). */
 export function sourceFor(type: EventType): Source {
   switch (type) {

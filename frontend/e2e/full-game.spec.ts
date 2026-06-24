@@ -35,11 +35,21 @@ test('drives a whole game and the scoreboard reflects the fold', async ({ page }
   }
   await expect(page.getByTestId('home-bonus')).toBeVisible();
 
-  // 5–7. substitution, timeout, possession
+  // 5–7. substitutions (p1 adult, p2 no-consent minor, p3 consented minor),
+  // timeout, possession
+  await page.getByTestId('sub-home').click();
+  await page.getByTestId('sub-home').click();
   await page.getByTestId('sub-home').click();
   await page.getByTestId('timeout-home').click();
   await page.getByTestId('possession-away').click();
   await expect(page.getByTestId('possession')).toHaveText('away');
+
+  // minor-safe public rendering: the no-consent minor (p2) shows by jersey only.
+  const onCourt = page.getByTestId('oncourt-home');
+  await expect(onCourt).toContainText('#23'); // Jordan Minor → jersey only
+  await expect(onCourt).not.toContainText('Jordan Minor');
+  await expect(onCourt).toContainText('Alex Adult'); // adult shows name
+  await expect(onCourt).toContainText('Sam Consented'); // consented minor shows name
 
   // 8. final
   await page.getByTestId('final').click();
