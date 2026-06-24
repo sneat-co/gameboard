@@ -17,10 +17,42 @@ var ErrInvalidEvent = errors.New("gameboard: invalid event")
 // Service appends authorized events and serves the deterministic fold.
 type Service struct {
 	store EventStore
+	games GameStore // optional; set when the store also persists game records
 }
 
-// NewService wires a Service over an EventStore.
-func NewService(store EventStore) *Service { return &Service{store: store} }
+// NewService wires a Service over an EventStore. If the store also implements
+// GameStore (the dalgo store does), game-record create/read is enabled.
+func NewService(store EventStore) *Service {
+	s := &Service{store: store}
+	if gs, ok := store.(GameStore); ok {
+		s.games = gs
+	}
+	return s
+}
+
+// CreateGame creates a new game record with two inline sides and an optional
+// scheduled time, returning the generated gameID. (Verifies scorer-creates-game.)
+func (s *Service) CreateGame(ctx context.Context, home, away et.Side, scheduledMs int64) (GameRecord, error) {
+	if s.games == nil {
+		return GameRecord{}, errors.New("gameboard: game store not configured")
+	}
+	if home.Name == "" || away.Name == "" {
+		return GameRecord{}, ErrInvalidEvent
+	}
+	g := GameRecord{GameID: newGameID(), Home: home, Away: away, ScheduledMs: scheduledMs, Status: et.StatusScheduled}
+	if err := s.games.CreateGame(ctx, g); err != nil {
+		return GameRecord{}, err
+	}
+	return g, nil
+}
+
+// Game reads a game record.
+func (s *Service) Game(ctx context.Context, gameID string) (GameRecord, error) {
+	if s.games == nil {
+		return GameRecord{}, ErrGameNotFound
+	}
+	return s.games.GetGame(ctx, gameID)
+}
 
 // AppendResult reports the outcome of an append.
 type AppendResult struct {

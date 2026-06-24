@@ -22,9 +22,49 @@ func NewHandler(svc *Service) *Handler { return &Handler{svc: svc} }
 //	GET  /v0/api4gameboard/games/{gameID}/events  — read the ordered log
 //	GET  /v0/api4gameboard/games/{gameID}/state   — public deterministic fold
 func (h *Handler) Register(mux *http.ServeMux) {
+	mux.HandleFunc("POST /v0/api4gameboard/games", h.createGame)
+	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}", h.getGame)
 	mux.HandleFunc("POST /v0/api4gameboard/games/{gameID}/events", h.append)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/events", h.list)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/state", h.state)
+}
+
+// createGameRequest is the body of POST /v0/api4gameboard/games.
+type createGameRequest struct {
+	Home        et.Side `json:"home"`
+	Away        et.Side `json:"away"`
+	ScheduledMs int64   `json:"scheduledMs"`
+}
+
+func (h *Handler) createGame(w http.ResponseWriter, r *http.Request) {
+	var body createGameRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid game body")
+		return
+	}
+	g, err := h.svc.CreateGame(r.Context(), body.Home, body.Away, body.ScheduledMs)
+	if err != nil {
+		if errors.Is(err, ErrInvalidEvent) {
+			writeError(w, http.StatusBadRequest, "invalid_game", "both sides need a name")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "internal", "failed to create game")
+		return
+	}
+	writeJSON(w, http.StatusCreated, g)
+}
+
+func (h *Handler) getGame(w http.ResponseWriter, r *http.Request) {
+	g, err := h.svc.Game(r.Context(), r.PathValue("gameID"))
+	if err != nil {
+		if errors.Is(err, ErrGameNotFound) {
+			writeError(w, http.StatusNotFound, "not_found", "game not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "internal", "failed to read game")
+		return
+	}
+	writeJSON(w, http.StatusOK, g)
 }
 
 // appendResponse mirrors the contract AppendEventResponse.

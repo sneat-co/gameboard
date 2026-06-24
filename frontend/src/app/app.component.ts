@@ -18,7 +18,16 @@ const DEMO_ROSTER: Record<string, Player> = {
   template: `
     <h1>GameBoard.live</h1>
 
-    <section class="scoreboard" data-testid="scoreboard">
+    @if (!gameID()) {
+      <section class="new-game" data-testid="new-game">
+        <h3>New game</h3>
+        <input data-testid="home-name" [value]="homeName" (input)="homeName = asValue($event)" placeholder="Home team" />
+        <input data-testid="away-name" [value]="awayName" (input)="awayName = asValue($event)" placeholder="Away team" />
+        <button data-testid="create-game" (click)="createGame()">Create game</button>
+      </section>
+    } @else {
+
+    <section class="scoreboard" [class.big]="bigScreen" data-testid="scoreboard">
       <div>
         <span class="score" data-testid="score-home">{{ state().scores.home }}</span>
         <span> – </span>
@@ -62,18 +71,42 @@ const DEMO_ROSTER: Record<string, Player> = {
       <button data-testid="away-foul" (click)="foul('away')">Away foul</button>
       <button data-testid="sub-home" (click)="sub('home')">Sub home</button>
     </section>
+
+    }
   `,
   imports: [],
 })
 export class AppComponent {
   private readonly api = inject(ApiService);
-  readonly gameID = (globalThis as { __GB_GAME__?: string }).__GB_GAME__ ?? 'demo';
+
+  readonly gameID = signal<string>(
+    (globalThis as { __GB_GAME__?: string }).__GB_GAME__ ?? '',
+  );
+  /** Big-screen (TV/projector) layout when ?display=big. */
+  readonly bigScreen = new URLSearchParams(globalThis.location?.search ?? '').get('display') === 'big';
+
+  homeName = '';
+  awayName = '';
 
   readonly state = signal<GameState>(emptyState());
   private subSeq = 0;
 
   constructor() {
-    void this.refresh();
+    if (this.gameID()) {
+      void this.refresh();
+    }
+  }
+
+  asValue(e: Event): string {
+    return (e.target as HTMLInputElement).value;
+  }
+
+  async createGame(): Promise<void> {
+    const home = this.homeName.trim() || 'Home';
+    const away = this.awayName.trim() || 'Away';
+    const rec = await this.api.createGame({ name: home, colour: '#c00' }, { name: away, colour: '#00c' });
+    this.gameID.set(rec.gameID);
+    await this.refresh();
   }
 
   clock(): string {
@@ -96,7 +129,7 @@ export class AppComponent {
   }
 
   private async refresh(): Promise<void> {
-    this.state.set(await this.api.state(this.gameID));
+    this.state.set(await this.api.state(this.gameID()));
   }
 
   private async append(p: Promise<unknown>): Promise<void> {
@@ -105,32 +138,32 @@ export class AppComponent {
   }
 
   status(s: 'live' | 'final'): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'status', { status: s }));
+    return this.append(this.api.append(this.gameID(), 'status', { status: s }));
   }
   period(n: number): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'period', { period: n }));
+    return this.append(this.api.append(this.gameID(), 'period', { period: n }));
   }
   clockStart(): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'clock', { clockAction: 'start', gameClockMs: 600000 }));
+    return this.append(this.api.append(this.gameID(), 'clock', { clockAction: 'start', gameClockMs: 600000 }));
   }
   clockStop(): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'clock', { clockAction: 'stop', gameClockMs: 540000 }));
+    return this.append(this.api.append(this.gameID(), 'clock', { clockAction: 'stop', gameClockMs: 540000 }));
   }
   possession(side: TeamSide): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'possession', { side }));
+    return this.append(this.api.append(this.gameID(), 'possession', { side }));
   }
   timeout(side: TeamSide): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'timeout', { side }));
+    return this.append(this.api.append(this.gameID(), 'timeout', { side }));
   }
   score(side: TeamSide, points: number): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'score', { side, points }));
+    return this.append(this.api.append(this.gameID(), 'score', { side, points }));
   }
   foul(side: TeamSide): Promise<void> {
-    return this.append(this.api.append(this.gameID, 'team-foul', { side }));
+    return this.append(this.api.append(this.gameID(), 'team-foul', { side }));
   }
   sub(side: TeamSide): Promise<void> {
     this.subSeq++;
-    return this.append(this.api.append(this.gameID, 'substitution', { side, playerOn: `p${this.subSeq}` }));
+    return this.append(this.api.append(this.gameID(), 'substitution', { side, playerOn: `p${this.subSeq}` }));
   }
 }
 

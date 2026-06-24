@@ -7,6 +7,13 @@
 // published @sneat/extension-gameboard-contract once that lib is on the registry.
 
 export type TeamSide = 'home' | 'away';
+
+/** Inline team descriptor stored per side on a game; spaceID null for ad-hoc. */
+export interface Side {
+  name: string;
+  colour: string;
+  spaceID?: string | null;
+}
 export type EventType =
   | 'status' | 'period' | 'clock' | 'score' | 'team-foul'
   | 'timeout' | 'substitution' | 'possession' | 'judge-ruling' | 'correction';
@@ -49,6 +56,14 @@ export interface AppendResponse {
   eventID: string;
   applied: boolean;
   status: string;
+}
+
+export interface GameRecord {
+  gameID: string;
+  home: Side;
+  away: Side;
+  scheduledMs: number;
+  status: GameStatus;
 }
 
 /** Bonus once the opponent has reached the per-period foul limit. */

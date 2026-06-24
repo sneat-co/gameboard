@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { AppendResponse, GameEvent, GameState, newEventID, sourceFor, type EventType } from './contract';
+import { AppendResponse, GameEvent, GameRecord, GameState, newEventID, Side, sourceFor, type EventType } from './contract';
 
 /** Base URL of the gameboard backend (empty = same origin). */
 export const API_BASE = new InjectionToken<string>('API_BASE');
@@ -14,6 +14,19 @@ export class ApiService {
 
   private url(gameID: string, suffix: string): string {
     return `${this.base}/v0/api4gameboard/games/${encodeURIComponent(gameID)}/${suffix}`;
+  }
+
+  /** Create a new game with two inline sides; returns the generated record. */
+  createGame(home: Side, away: Side, scheduledMs = 0): Promise<GameRecord> {
+    return firstValueFrom(
+      this.http.post<GameRecord>(`${this.base}/v0/api4gameboard/games`, { home, away, scheduledMs }),
+    );
+  }
+
+  game(gameID: string): Promise<GameRecord> {
+    return firstValueFrom(
+      this.http.get<GameRecord>(`${this.base}/v0/api4gameboard/games/${encodeURIComponent(gameID)}`),
+    );
   }
 
   /** Append an event; fills eventID (idempotency key), source and wall clock. */
