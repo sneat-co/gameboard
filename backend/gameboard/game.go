@@ -43,7 +43,9 @@ type gameRecordDBO struct {
 func (s *dalgoStore) CreateGame(ctx context.Context, g GameRecord) error {
 	dbo := gameRecordDBO{Home: g.Home, Away: g.Away, ScheduledMs: g.ScheduledMs, Status: g.Status}
 	return s.db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
-		if err := tx.Set(ctx, dal.NewRecordWithData(gameKey(g.GameID), &dbo)); err != nil {
+		rec := dal.NewRecordWithData(gameKey(g.GameID), &dbo)
+		rec.SetError(nil) // mark data valid for write (dalgo2firestore reads record.Data())
+		if err := tx.Set(ctx, rec); err != nil {
 			return fmt.Errorf("failed to create game: %w", err)
 		}
 		return nil

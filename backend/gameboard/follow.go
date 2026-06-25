@@ -47,16 +47,20 @@ func followKey(e FollowEdge) *dal.Key {
 }
 
 type followDBO struct {
-	AccountID  string           `json:"accountID"`
-	TargetType FollowTargetType `json:"targetType"`
-	TargetID   string           `json:"targetID"`
+	// firestore tags mirror the json tags so the ListFollows WhereField query
+	// matches the stored field names on Firestore (see eventDBO).
+	AccountID  string           `json:"accountID" firestore:"accountID"`
+	TargetType FollowTargetType `json:"targetType" firestore:"targetType"`
+	TargetID   string           `json:"targetID" firestore:"targetID"`
 }
 
 // PutFollow writes (idempotently — the composite id is the key) a follow edge.
 func (s *dalgoStore) PutFollow(ctx context.Context, e FollowEdge) error {
 	dbo := followDBO{AccountID: e.AccountID, TargetType: e.TargetType, TargetID: e.TargetID}
 	return s.db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
-		if err := tx.Set(ctx, dal.NewRecordWithData(followKey(e), &dbo)); err != nil {
+		rec := dal.NewRecordWithData(followKey(e), &dbo)
+		rec.SetError(nil) // mark data valid for write (dalgo2firestore reads record.Data())
+		if err := tx.Set(ctx, rec); err != nil {
 			return fmt.Errorf("failed to write follow: %w", err)
 		}
 		return nil
