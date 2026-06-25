@@ -1,16 +1,22 @@
 import { test, expect } from '@playwright/test';
 
 // Smoke scope (per decision): assert the app boots and routes resolve without
-// crashing. Full "renders lists data" needs an authenticated session + seeded
-// space (deferred), so an unauthenticated login redirect is the expected path.
+// crashing. Full "renders authenticated data" needs a signed-in session +
+// seeded space (deferred), so an unauthenticated redirect to /login is the
+// expected, asserted path.
+//
+// The app is served under the `/app` prefix (baseHref `/app/`) by Caddy with
+// SPA history fallback — see apps/gameboard-app-e2e/Caddyfile and
+// playwright.config.ts. That mirrors the production Cloudflare Worker, so deep
+// links below get the app shell instead of a 404.
 
-test('app boots and redirects unauthenticated user to login', async ({
+test('app boots at /app/ and redirects unauthenticated user to login', async ({
   page,
 }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (e) => pageErrors.push(String(e)));
 
-  await page.goto('/');
+  await page.goto('/app/');
 
   // Angular bootstrapped and rendered the app shell.
   await expect(page.locator('gameboard-root')).toBeAttached();
@@ -23,10 +29,25 @@ test('app boots and redirects unauthenticated user to login', async ({
   );
 });
 
-// NOTE: the listus placeholder ('/space/.../lists') smoke was removed — that
-// route has no auth guard and crashes on lazy-load (gameboard-root never
-// attaches). A deep-link smoke for a gameboard sub-route (e.g. '/new-game') has
-// the same problem: navigating directly to a non-root path does not render the
-// app shell in the dev server (SPA history fallback is not serving index.html
-// for sub-routes), so gameboard-root is not attached. Re-add a sub-route smoke
-// once dev-server SPA fallback (and/or an authenticated session) is wired.
+test('deep link /app/new-game renders the shell and redirects to login (SPA fallback)', async ({
+  page,
+}) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (e) => pageErrors.push(String(e)));
+
+  // Navigate DIRECTLY to a sub-route (not via in-app navigation). This only
+  // works if the server history-falls-back to index.html so Angular's router
+  // can take over — the behaviour the Caddy webServer provides.
+  await page.goto('/app/new-game');
+
+  // The shell attached on a deep link → SPA fallback served index.html.
+  await expect(page.locator('gameboard-root')).toBeAttached();
+
+  // new-game is account-gated (AuthGuard), so an anonymous deep link redirects
+  // to login — proving the route resolved client-side, not 404'd by the server.
+  await page.waitForURL(/login/, { timeout: 20_000 });
+
+  expect(pageErrors, `uncaught page errors:\n${pageErrors.join('\n')}`).toEqual(
+    [],
+  );
+});

@@ -22,13 +22,17 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
-  /* Run your local dev server before starting the tests */
+  /* Build the app and serve it via Caddy (mirrors the production Cloudflare
+   * Worker: /app prefix + SPA history fallback + COOP header). The Angular dev
+   * server does NOT history-fallback sub-routes, so deep-link smokes need the
+   * built app served with fallback — see apps/gameboard-app-e2e/Caddyfile. */
   webServer: {
-    command: 'pnpm exec nx run gameboard-app:serve',
-    url: 'http://localhost:4200',
+    command:
+      'pnpm exec nx build gameboard-app && caddy run --config apps/gameboard-app-e2e/Caddyfile --adapter caddyfile',
+    url: 'http://localhost:4200/app/',
     reuseExistingServer: true,
     cwd: workspaceRoot,
-    // Cold CI builds the app on first request; allow generous startup time.
+    // Cold CI builds the app first; allow generous startup time.
     timeout: 180_000,
   },
   projects: [

@@ -1,0 +1,39 @@
+# Caddy config for the GameBoard E2E web server.
+#
+# Serves the BUILT Angular app (dist/apps/gameboard-app/browser) the way
+# production does, so deep-link smokes (e.g. /app/new-game) get the app shell
+# instead of a 404. It mirrors the production Cloudflare Worker
+# (frontend/worker/index.js):
+#
+#   1. The app is built with baseHref `/app/`, so it lives under the `/app`
+#      prefix. `handle_path /app/*` strips `/app` before asset lookup; `handle
+#      /app` (no trailing slash) maps the bare prefix to the shell.
+#   2. SPA fallback: `try_files {path} /index.html` returns index.html for any
+#      unknown sub-route so Angular's router can take over the deep link.
+#   3. `Cross-Origin-Opener-Policy: same-origin-allow-popups` so Firebase
+#      signInWithPopup can postMessage back to the opener (must NOT be
+#      `same-origin`) — same header the Worker sets.
+#
+# The dist path defaults to the standard build output but can be overridden via
+# the GAMEBOARD_DIST env var. Caddy's cwd is the frontend workspace root (the
+# Playwright webServer runs from workspaceRoot).
+
+:4200 {
+	encode gzip
+	header Cross-Origin-Opener-Policy "same-origin-allow-popups"
+	header Referrer-Policy "strict-origin"
+
+	root * {$GAMEBOARD_DIST:dist/apps/gameboard-app/browser}
+
+	# /app/<asset|route> — strip the prefix, serve the file or SPA-fallback.
+	handle_path /app/* {
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Bare /app (no trailing slash) → app shell.
+	handle /app {
+		rewrite * /index.html
+		file_server
+	}
+}

@@ -56,6 +56,11 @@ jobs:
       - name: Install Playwright browser
         working-directory: frontend
         run: pnpm exec playwright install --with-deps
+      - name: Install Caddy (E2E web server: /app prefix + SPA history fallback)
+        run: |
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.8.4/caddy_2.8.4_linux_amd64.tar.gz -o /tmp/caddy.tgz
+          sudo tar -xzf /tmp/caddy.tgz -C /usr/local/bin caddy
+          caddy version
       - name: Umbrella full-game E2E (UI → API → backend → fold)
         working-directory: frontend
         run: pnpm exec nx e2e gameboard-app-e2e
