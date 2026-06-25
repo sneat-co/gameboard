@@ -1,29 +1,73 @@
 ---
-// Static, CSS-only scoreboard visual. No JS, no stock imagery.
+// Interactive scoreboard demo. CSS-only visuals + a small vanilla client script.
 ---
 
-<div class="scoreboard" role="img" aria-label="Live scoreboard showing Home 62, Away 58, clock 04:21 in the fourth quarter">
+<div class="scoreboard" id="hero-scoreboard">
   <div class="board-top">
     <span class="live"><span class="pulse"></span>LIVE</span>
-    <span class="period">Q4</span>
+    <span class="period" data-period>Q2</span>
   </div>
 
   <div class="teams">
     <div class="team home">
       <span class="name">HOME</span>
-      <span class="score">62</span>
+      <span class="score" data-score="home">62</span>
+
+      <div class="controls">
+        <button data-act="score" data-team="home" data-pts="1" aria-label="Home, add 1 point">+1</button>
+        <button data-act="score" data-team="home" data-pts="2" aria-label="Home, add 2 points">+2</button>
+        <button data-act="score" data-team="home" data-pts="3" aria-label="Home, add 3 points">+3</button>
+      </div>
+
+      <div class="ind">
+        <button class="ind-label" data-act="foul" data-team="home" aria-label="Home, add foul">+foul</button>
+        <span class="dots fouls" data-dots="fouls-home" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i>
+        </span>
+      </div>
+      <div class="ind">
+        <button class="ind-label" data-act="timeout" data-team="home" aria-label="Home, add timeout">+timeout</button>
+        <span class="dots to" data-dots="timeouts-home" aria-hidden="true">
+          <i></i><i></i><i></i><i></i>
+        </span>
+      </div>
     </div>
 
     <div class="clock">
-      <span class="time">04:21</span>
+      <span class="time">
+        <span class="min" data-clock-min>07</span><span class="sec" data-clock-sec>:42</span>
+      </span>
       <span class="label">CLOCK</span>
+      <button class="clock-toggle" data-toggle aria-label="Stop clock">Stop</button>
+      <span class="timeout" data-timeout aria-hidden="true"></span>
     </div>
 
     <div class="team away">
       <span class="name">AWAY</span>
-      <span class="score">58</span>
+      <span class="score" data-score="away">58</span>
+
+      <div class="controls">
+        <button data-act="score" data-team="away" data-pts="1" aria-label="Away, add 1 point">+1</button>
+        <button data-act="score" data-team="away" data-pts="2" aria-label="Away, add 2 points">+2</button>
+        <button data-act="score" data-team="away" data-pts="3" aria-label="Away, add 3 points">+3</button>
+      </div>
+
+      <div class="ind">
+        <button class="ind-label" data-act="foul" data-team="away" aria-label="Away, add foul">+foul</button>
+        <span class="dots fouls" data-dots="fouls-away" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i>
+        </span>
+      </div>
+      <div class="ind">
+        <button class="ind-label" data-act="timeout" data-team="away" aria-label="Away, add timeout">+timeout</button>
+        <span class="dots to" data-dots="timeouts-away" aria-hidden="true">
+          <i></i><i></i><i></i><i></i>
+        </span>
+      </div>
     </div>
   </div>
+
+  <span class="visually-hidden" role="status" aria-live="polite" data-announce></span>
 </div>
 
 <style>
@@ -90,7 +134,7 @@
   .teams {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    align-items: center;
+    align-items: start;
     gap: var(--space-2);
   }
 
@@ -111,13 +155,105 @@
   .score {
     font-family: var(--font-mono);
     font-weight: 800;
-    font-size: clamp(3.5rem, 14vw, 6rem);
+    font-size: clamp(3rem, 12vw, 5rem);
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
 
   .team.home .score { color: var(--gb-score-home); }
   .team.away .score { color: var(--gb-score-away); }
+
+  .ind {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+  }
+
+  .ind-label {
+    font-family: inherit;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #cdd8e1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    padding: 0.24rem 0.45rem;
+    min-width: 5.4em;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .ind-label:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .ind-label:active {
+    transform: translateY(1px);
+  }
+
+  .ind-label:focus-visible {
+    outline: 2px solid var(--gb-clock);
+    outline-offset: 2px;
+  }
+
+  .dots {
+    display: inline-flex;
+    gap: 0.28rem;
+  }
+
+  .dots i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(159, 176, 191, 0.25);
+    transition: background 0.15s ease;
+  }
+
+  .dots.fouls i.on { background: var(--color-danger); }
+  .team.home .dots.to i.on { background: var(--gb-score-home); }
+  .team.away .dots.to i.on { background: var(--gb-score-away); }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.2rem;
+    width: 100%;
+    max-width: 11rem;
+  }
+
+  .controls button {
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #cdd8e1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    padding: 0.4rem 0.2rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .controls button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .controls button:active {
+    transform: translateY(1px);
+  }
+
+  .controls button:focus-visible {
+    outline: 2px solid var(--gb-clock);
+    outline-offset: 2px;
+  }
 
   .clock {
     display: flex;
@@ -129,10 +265,21 @@
   .time {
     font-family: var(--font-mono);
     font-weight: 800;
-    font-size: clamp(1.5rem, 6vw, 2.4rem);
     color: var(--gb-clock);
     font-variant-numeric: tabular-nums;
     text-shadow: 0 0 14px rgba(255, 210, 74, 0.45);
+    line-height: 1;
+    transition: color 0.15s ease, text-shadow 0.15s ease;
+  }
+
+  .time.paused {
+    color: #ff8f8f;
+    text-shadow: 0 0 14px rgba(255, 120, 120, 0.45);
+  }
+
+  .min,
+  .sec {
+    font-size: clamp(1.5rem, 6vw, 2.4rem);
   }
 
   .label {
@@ -141,4 +288,188 @@
     color: #9fb0bf;
     margin-top: 0.2rem;
   }
+
+  .clock-toggle {
+    margin-top: 0.6rem;
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #cdd8e1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    padding: 0.32rem 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .clock-toggle:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .clock-toggle:active {
+    transform: translateY(1px);
+  }
+
+  .clock-toggle:focus-visible {
+    outline: 2px solid var(--gb-clock);
+    outline-offset: 2px;
+  }
+
+  .timeout {
+    margin-top: 0.5rem;
+    min-height: 1.1em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-danger);
+    font-variant-numeric: tabular-nums;
+  }
 </style>
+
+<script>
+  const root = document.getElementById("hero-scoreboard");
+  if (root) {
+    const QUARTER_SECONDS = 10 * 60;
+    const MAX = { fouls: 5, timeouts: 4 };
+
+    const state = {
+      quarter: 2,
+      clock: 7 * 60 + 42,
+      scores: { home: 62, away: 58 },
+      fouls: { home: 2, away: 3 },
+      timeouts: { home: 1, away: 2 },
+    };
+
+    const $ = (sel) => root.querySelector(sel);
+    const periodEl = $("[data-period]");
+    const timeEl = $(".time");
+    const minEl = $("[data-clock-min]");
+    const secEl = $("[data-clock-sec]");
+    const announceEl = $("[data-announce]");
+    const toggleBtn = $("[data-toggle]");
+    const timeoutEl = $("[data-timeout]");
+    const pad = (n) => String(n).padStart(2, "0");
+    const fmt = (s) => Math.floor(s / 60) + ":" + pad(s % 60);
+
+    function renderClock() {
+      minEl.textContent = pad(Math.floor(state.clock / 60));
+      secEl.textContent = ":" + pad(state.clock % 60);
+    }
+
+    function renderPeriod() {
+      periodEl.textContent = "Q" + state.quarter;
+    }
+
+    function renderScores() {
+      root.querySelector('[data-score="home"]').textContent = state.scores.home;
+      root.querySelector('[data-score="away"]').textContent = state.scores.away;
+    }
+
+    function renderDots(group, team) {
+      const dots = root.querySelectorAll(`[data-dots="${group}-${team}"] i`);
+      const count = state[group][team];
+      dots.forEach((d, i) => d.classList.toggle("on", i < count));
+    }
+
+    function renderAllDots() {
+      ["fouls", "timeouts"].forEach((g) =>
+        ["home", "away"].forEach((t) => renderDots(g, t))
+      );
+    }
+
+    function announce(msg) {
+      announceEl.textContent = msg;
+    }
+
+    function tick() {
+      if (state.clock <= 0) {
+        state.quarter = state.quarter >= 4 ? 1 : state.quarter + 1;
+        state.clock = QUARTER_SECONDS;
+        renderPeriod();
+      } else {
+        state.clock -= 1;
+      }
+      renderClock();
+    }
+
+    let clockTimer = null;
+    function updateToggle() {
+      const running = clockTimer !== null;
+      toggleBtn.textContent = running ? "Stop" : "Start";
+      toggleBtn.setAttribute("aria-label", running ? "Stop clock" : "Start clock");
+      timeEl.classList.toggle("paused", !running);
+    }
+    function startClock() {
+      if (clockTimer !== null) return;
+      clockTimer = setInterval(tick, 1000);
+      updateToggle();
+    }
+    function stopClock() {
+      clearInterval(clockTimer);
+      clockTimer = null;
+      updateToggle();
+    }
+
+    let toTimer = null;
+    function startTimeout(team) {
+      const label = team === "home" ? "Home" : "Away";
+      let remaining = 60;
+      timeoutEl.textContent = `${label} timeout ${fmt(remaining)}`;
+      clearInterval(toTimer);
+      toTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(toTimer);
+          toTimer = null;
+          timeoutEl.textContent = "";
+        } else {
+          timeoutEl.textContent = `${label} timeout ${fmt(remaining)}`;
+        }
+      }, 1000);
+    }
+
+    root.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const team = btn.dataset.team;
+      const label = team === "home" ? "Home" : "Away";
+
+      if (btn.dataset.act === "score") {
+        state.scores[team] += Number(btn.dataset.pts);
+        renderScores();
+        announce(`${label} ${state.scores[team]} points`);
+      } else if (btn.dataset.act === "foul") {
+        state.fouls[team] = state.fouls[team] >= MAX.fouls ? 0 : state.fouls[team] + 1;
+        renderDots("fouls", team);
+        announce(`${label} ${state.fouls[team]} fouls`);
+      } else if (btn.dataset.act === "timeout") {
+        state.timeouts[team] = state.timeouts[team] >= MAX.timeouts ? 0 : state.timeouts[team] + 1;
+        renderDots("timeouts", team);
+        startTimeout(team);
+        announce(`${label} timeout`);
+      }
+    });
+
+    toggleBtn.addEventListener("click", () => {
+      if (clockTimer !== null) stopClock();
+      else startClock();
+    });
+
+    renderClock();
+    renderPeriod();
+    renderScores();
+    renderAllDots();
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduceMotion) {
+      startClock();
+    } else {
+      updateToggle();
+    }
+  }
+</script>
