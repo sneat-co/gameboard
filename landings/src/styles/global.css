@@ -9,6 +9,7 @@
 
   --color-accent: var(--gb-accent);
   --color-accent-strong: var(--gb-accent-strong);
+  --color-accent-text: var(--gb-accent-ink);
   --color-score: var(--gb-clock);
   --color-danger: var(--gb-warn);
 
@@ -60,7 +61,7 @@ p {
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   text-decoration: none;
 }
 
@@ -89,7 +90,7 @@ img {
   letter-spacing: 0.16em;
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   margin-bottom: var(--space-1);
 }
 

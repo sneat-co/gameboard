@@ -8,13 +8,14 @@
   --gb-accent: #00e5a0;          /* mint — CTAs, eyebrows, links, app primary */
   --gb-accent-strong: #00c489;   /* hover / shade */
   --gb-accent-contrast: #04231a; /* text on a mint fill */
+  --gb-accent-ink: #036649;      /* dark emerald — text on light bg (6.18:1 vs #eef1f5) */
 
   /* Light chrome */
   --gb-bg: #eef1f5;              /* page background */
   --gb-surface: #ffffff;        /* cards */
   --gb-border: #e6e9ee;
   --gb-ink: #11181c;            /* primary text + strongest buttons */
-  --gb-muted: #6b7785;
+  --gb-muted: #5c6675;            /* darkened for AA contrast (5.13:1 vs #eef1f5) */
 
   /* Dark scoreboard moment */
   --gb-score-bg: #0a0f14;
