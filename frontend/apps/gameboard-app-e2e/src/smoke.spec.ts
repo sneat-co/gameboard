@@ -23,15 +23,19 @@ test('app boots and redirects unauthenticated user to login', async ({
   );
 });
 
-test('space-scoped lists route loads without crashing', async ({ page }) => {
+test('new-game route resolves and is account-gated (redirects to login)', async ({
+  page,
+}) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (e) => pageErrors.push(String(e)));
 
-  // Lazy-loads the template space shell + lists route. Unauthenticated, this
-  // redirects to login; the assertion is that the app handles it without throwing.
-  await page.goto('/space/family/smoke-test-space/lists');
+  // /new-game is the gameboard on-ramp; it is account-gated (AuthGuard +
+  // redirectToLoginIfNotSignedIn). Unauthenticated, it must resolve and redirect
+  // to login without throwing — the smoke for a real gameboard route.
+  await page.goto('/new-game');
 
   await expect(page.locator('gameboard-root')).toBeAttached();
+  await page.waitForURL(/login/, { timeout: 20_000 });
 
   expect(pageErrors, `uncaught page errors:\n${pageErrors.join('\n')}`).toEqual(
     [],
