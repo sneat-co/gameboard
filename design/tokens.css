@@ -1,0 +1,42 @@
+/*
+ * GameBoard shared design tokens — single source of truth.
+ * Plain CSS custom properties (runtime), consumed by both the Astro landings
+ * and the Angular/Ionic app. Edit colors here and both surfaces update.
+ */
+:root {
+  /* Brand accent — the pitch */
+  --gb-accent: #00e5a0;          /* mint — CTAs, eyebrows, links, app primary */
+  --gb-accent-strong: #00c489;   /* hover / shade */
+  --gb-accent-contrast: #04231a; /* text on a mint fill */
+
+  /* Light chrome */
+  --gb-bg: #eef1f5;              /* page background */
+  --gb-surface: #ffffff;        /* cards */
+  --gb-border: #e6e9ee;
+  --gb-ink: #11181c;            /* primary text + strongest buttons */
+  --gb-muted: #6b7785;
+
+  /* Dark scoreboard moment */
+  --gb-score-bg: #0a0f14;
+  --gb-score-bg-top: #15202b;   /* radial-gradient top stop */
+  --gb-clock: #ffd24a;          /* glowing yellow clock */
+  --gb-score-home: #5fd39a;     /* placeholder default (team-driven later) */
+  --gb-score-away: #8fb4ff;     /* placeholder default (team-driven later) */
+
+  /* Team-semantic defaults (vary per team later) */
+  --gb-home: #1f9d55;
+  --gb-away: #2563eb;
+
+  /* Status / energy */
+  --gb-energy: #ff6a00;         /* reactions, bonus highlights */
+  --gb-warn: #d64545;
+
+  /* Typography */
+  --gb-font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --gb-font-score: "DSEG", ui-monospace, "SF Mono", "Courier New", monospace;
+
+  /* Shape */
+  --gb-radius: 14px;
+  --gb-radius-pill: 999px;
+  --gb-shadow: 0 10px 40px rgba(20, 30, 50, 0.18);
+}
