@@ -11,7 +11,7 @@ status: Approved
 **Supersedes:** —
 **Parent:** gameboard-live
 
-> **Status (gameboard repo, 2026-06-26):** Backend (account-gated follow) is **live in prod** (via sneat-go). This **frontend surface was part of the deleted 1st-gen app and was not ported** to the current Nx + Ionic app — it is **to be rebuilt** on the current scaffolding (Slice 4). See the master plan's [Frontend Reality & Rebuild](./gameboard-live.md) section; salvaged acceptance E2E: [`docs/legacy-mvp-frontend/e2e/follow.spec.ts`](../../docs/legacy-mvp-frontend/e2e/follow.spec.ts).
+> **Status (gameboard repo, 2026-06-26):** Backend (account-gated follow) is **live in prod** (via sneat-go). This **frontend surface was part of the deleted 1st-gen app and was not ported** to the current Nx + Ionic app — it is **to be rebuilt** on the current scaffolding (Slice 4). See the master plan's [Frontend Reality & Rebuild](./gameboard-live.md) section; verified by a **real-stack full-cycle E2E** (UI → API → `gameboardd` → Firestore emulator → fold) that extends the full-game lifecycle chain (see the master plan's Testing strategy); reference spec: [`docs/legacy-mvp-frontend/e2e/follow.spec.ts`](../../docs/legacy-mvp-frontend/e2e/follow.spec.ts).
 
 ## Summary
 
