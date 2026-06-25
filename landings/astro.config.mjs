@@ -9,4 +9,7 @@ export default defineConfig({
   output: "static",
   outDir: "./dist",
   integrations: [sitemap()],
+  vite: {
+    server: { fs: { allow: [".."] } },
+  },
 });
