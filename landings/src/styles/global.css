@@ -1,23 +1,23 @@
 :root {
-  /* Scoreboard-inspired dark palette */
-  --color-bg: #0a0e1a;
-  --color-bg-elevated: #121828;
-  --color-surface: #1a2236;
-  --color-border: #2a3450;
-  --color-text: #f4f6fb;
-  --color-text-muted: #9aa6c4;
+  /* Mapped onto shared tokens (design/tokens.css) */
+  --color-bg: var(--gb-bg);
+  --color-bg-elevated: var(--gb-surface);
+  --color-surface: var(--gb-surface);
+  --color-border: var(--gb-border);
+  --color-text: var(--gb-ink);
+  --color-text-muted: var(--gb-muted);
 
-  --color-accent: #00e5a0;
-  --color-accent-strong: #00c489;
-  --color-score: #ffd23f;
-  --color-danger: #ff5c7a;
+  --color-accent: var(--gb-accent);
+  --color-accent-strong: var(--gb-accent-strong);
+  --color-score: var(--gb-clock);
+  --color-danger: var(--gb-warn);
 
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "DSEG", "Courier New", ui-monospace, "SF Mono", monospace;
+  --font-sans: var(--gb-font-sans);
+  --font-mono: var(--gb-font-score);
 
   --maxw: 1120px;
-  --radius: 14px;
-  --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  --radius: var(--gb-radius);
+  --shadow: var(--gb-shadow);
 
   --space-1: 0.5rem;
   --space-2: 1rem;
