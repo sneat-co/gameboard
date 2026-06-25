@@ -16,6 +16,7 @@
       ],
       "options": {
         "outputPath": "dist/apps/gameboard-app",
+        "baseHref": "/app/",
         "browser": "apps/gameboard-app/src/main.ts",
         "tsConfig": "apps/gameboard-app/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
