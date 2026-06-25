@@ -28,12 +28,13 @@
 
 <style>
   .scoreboard {
-    background: linear-gradient(180deg, var(--color-surface), var(--color-bg-elevated));
-    border: 1px solid var(--color-border);
+    background: radial-gradient(120% 120% at 50% 0%, var(--gb-score-bg-top), var(--gb-score-bg));
+    border: 1px solid var(--gb-score-bg-top);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     padding: var(--space-3);
     width: 100%;
+    color: #fff;
   }
 
   .board-top {
@@ -83,7 +84,7 @@
   .period {
     font-weight: 800;
     letter-spacing: 0.1em;
-    color: var(--color-text-muted);
+    color: #9fb0bf;
   }
 
   .teams {
@@ -104,7 +105,7 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     font-size: 0.85rem;
-    color: var(--color-text-muted);
+    color: #9fb0bf;
   }
 
   .score {
@@ -112,10 +113,11 @@
     font-weight: 800;
     font-size: clamp(3.5rem, 14vw, 6rem);
     line-height: 1;
-    color: var(--color-score);
-    text-shadow: 0 0 24px rgba(255, 210, 63, 0.35);
     font-variant-numeric: tabular-nums;
   }
+
+  .team.home .score { color: var(--gb-score-home); }
+  .team.away .score { color: var(--gb-score-away); }
 
   .clock {
     display: flex;
@@ -128,15 +130,15 @@
     font-family: var(--font-mono);
     font-weight: 800;
     font-size: clamp(1.5rem, 6vw, 2.4rem);
-    color: var(--color-accent);
+    color: var(--gb-clock);
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 18px rgba(0, 229, 160, 0.35);
+    text-shadow: 0 0 14px rgba(255, 210, 74, 0.45);
   }
 
   .label {
     font-size: 0.7rem;
     letter-spacing: 0.18em;
-    color: var(--color-text-muted);
+    color: #9fb0bf;
     margin-top: 0.2rem;
   }
 </style>
