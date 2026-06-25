@@ -40,7 +40,10 @@ func eventsCollectionRef(gameID string) dal.CollectionRef {
 // onto the record so the list-by-game query can filter (the in-memory adapter
 // keys collections by name only — same rationale as eventus's eventDBO).
 type eventDBO struct {
-	GameID string `json:"gameID"`
+	// firestore tag mirrors the json tag so the WhereField("gameID") list query
+	// matches the stored field name on Firestore (the Firestore client ignores
+	// json tags); dalgo2memory resolves via the json tag.
+	GameID string `json:"gameID" firestore:"gameID"`
 	et.Event
 }
 
@@ -69,7 +72,9 @@ func (s *dalgoStore) Append(ctx context.Context, gameID string, e et.Event) (boo
 			}
 			// not found → first time → write it
 			dbo := eventDBO{GameID: gameID, Event: e}
-			if err := tx.Set(ctx, dal.NewRecordWithData(eventKey(gameID, e.EventID), &dbo)); err != nil {
+			rec := dal.NewRecordWithData(eventKey(gameID, e.EventID), &dbo)
+			rec.SetError(nil) // mark data valid for write (dalgo2firestore reads record.Data())
+			if err := tx.Set(ctx, rec); err != nil {
 				return fmt.Errorf("failed to append event: %w", err)
 			}
 			added = true
