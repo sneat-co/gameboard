@@ -1,0 +1,63 @@
+<ion-list>
+  <!-- Space selector: switch between the user's spaces (like sneat-app). -->
+  <ion-item>
+    <ion-select
+      label="Space"
+      [value]="$space().id"
+      interface="popover"
+      (ionChange)="onSpaceSelected($event)"
+      style="font-weight: bold"
+    >
+      @for (userSpace of $spaces(); track userSpace.id) {
+        <ion-select-option [value]="userSpace.id">
+          {{
+            userSpace.brief.title ||
+              (userSpace.brief.type | titlecase) ||
+              userSpace.id
+          }}
+        </ion-select-option>
+      } @empty {
+        @let space = $space();
+        <ion-select-option [value]="space?.id">
+          @if (!space || (!space.id && !space.type)) {
+            Loading...
+          } @else {
+            {{ space.brief?.title || (space.type | titlecase) || space.id }}
+          }
+        </ion-select-option>
+      }
+    </ion-select>
+  </ion-item>
+
+  <!-- Lists of the selected space. -->
+  <ion-item
+    tappable
+    [routerLink]="spacePageUrl('lists')"
+    routerDirection="root"
+    [disabled]="$disabled()"
+    (click)="closeMenu()"
+  >
+    <ion-icon name="list-outline" slot="start" />
+    <ion-label>Lists</ion-label>
+  </ion-item>
+
+  @for (group of $listGroups(); track group.id) {
+    @for (list of group.lists || []; track list.id) {
+      <ion-item
+        tappable
+        class="ion-padding-start"
+        [routerLink]="spacePageUrl('list/' + list.type + '/' + list.id)"
+        routerDirection="root"
+        [disabled]="$disabled()"
+        (click)="closeMenu()"
+      >
+        @if (list.emoji) {
+          <ion-note slot="start">{{ list.emoji }}</ion-note>
+        }
+        <ion-label>{{ list.title || list.id }}</ion-label>
+      </ion-item>
+    }
+  }
+
+  <sneat-auth-menu-item />
+</ion-list>

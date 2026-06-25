@@ -1,0 +1,15 @@
+{
+  "name": "gameboard-app-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/gameboard-app-e2e/src",
+  "implicitDependencies": [
+    "gameboard-app"
+  ],
+  "// targets": "to see all targets run: nx show project gameboard-app-e2e --web",
+  "targets": {},
+  "tags": [
+    "type:e2e",
+    "scope:gameboard"
+  ]
+}
