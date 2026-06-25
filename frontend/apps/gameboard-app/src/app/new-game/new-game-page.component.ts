@@ -30,6 +30,24 @@ import {
   ToastController,
 } from '@ionic/angular/standalone';
 import { CREATOR_ROLES, CreatorRole, Side } from './game-contract';
+
+// Sports a game can be created for — the very first choice on the new-game
+// on-ramp. Kept client-side: the wire contract has no sport field yet, so the
+// pick is persisted with the local draft only (see new-game-draft.ts).
+interface SportOption {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
+const SPORTS: readonly SportOption[] = [
+  { id: 'basketball', label: 'Basketball', emoji: '🏀' },
+  { id: 'gaelic-football', label: 'Gaelic Football', emoji: '☘️' },
+  { id: 'hurling-camogie', label: 'Hurling/Camogie', emoji: '🏑' },
+  { id: 'soccer', label: 'Football/Soccer', emoji: '⚽' },
+  { id: 'american-football', label: 'American Football', emoji: '🏈' },
+  { id: 'rugby', label: 'Rugby', emoji: '🏉' },
+];
 import {
   clearNewGameDraft,
   loadNewGameDraft,
@@ -81,20 +99,62 @@ import { SneatAuthStateService } from '@sneat/auth-core';
     <ion-content class="ion-padding">
       <ion-card>
         <ion-card-header>
-          <ion-card-title>🏀 New game</ion-card-title>
-          <ion-note
-            >Two team names and a time is all you need — everything else is
-            optional.</ion-note
-          >
+          @if (selectedSport(); as s) {
+            <ion-card-title>{{ s.emoji }} New {{ s.label }} game</ion-card-title>
+            <ion-note
+              >Two team names and a time is all you need — everything else is
+              optional.</ion-note
+            >
+          } @else {
+            <ion-card-title>🎮 New game</ion-card-title>
+            <ion-note>Which sport are you playing?</ion-note>
+          }
         </ion-card-header>
         <ion-card-content>
+          <!-- Step 1 — pick a sport. The rest of the form stays hidden until a
+               sport is chosen, so this is always the first decision. -->
+          @if (!selectedSport()) {
+            <div class="sports">
+              @for (s of sports; track s.id) {
+                <ion-button
+                  fill="outline"
+                  class="sport"
+                  (click)="sport.set(s.id)"
+                >
+                  <span class="emoji">{{ s.emoji }}</span>
+                  <span class="name">{{ s.label }}</span>
+                </ion-button>
+              }
+            </div>
+          } @else {
+          <!-- Step 2 — the existing game form, shown once a sport is picked. -->
+          <ion-item lines="none" class="chosen-sport">
+            <ion-note slot="start">{{ selectedSport()?.emoji }} {{ selectedSport()?.label }}</ion-note>
+            <ion-button
+              slot="end"
+              fill="clear"
+              size="small"
+              (click)="sport.set('')"
+              >Change sport</ion-button
+            >
+          </ion-item>
+
           <!-- Sign-in affordance — non-blocking. Anonymous users can ignore it
                and keep filling the form; signing in lets them use a registered
                sneat.team team and returns them right back here
                (anon-first-new-game#ac:signin-affordance-visible). -->
           @if (!isSignedIn()) {
             <ion-item lines="none" class="signin-hint">
-              <ion-note>Have a sneat.team account?</ion-note>
+              <ion-note
+                >Have a
+                <a
+                  href="https://sneat.team/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >sneat.team</a
+                >
+                account?</ion-note
+              >
               <ion-button
                 slot="end"
                 fill="outline"
@@ -208,11 +268,35 @@ import { SneatAuthStateService } from '@sneat/auth-core';
               Create game ›
             }
           </ion-button>
+          }
         </ion-card-content>
       </ion-card>
     </ion-content>
   `,
   styles: `
+    .sports {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .sport {
+      height: 5rem;
+      --padding-top: 0.75rem;
+      --padding-bottom: 0.75rem;
+    }
+    .sport::part(native) {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .sport .emoji {
+      font-size: 1.75rem;
+      line-height: 1;
+    }
+    .sport .name {
+      font-size: 0.8rem;
+      text-transform: none;
+    }
     .colour {
       width: 2rem;
       height: 2rem;
@@ -238,6 +322,7 @@ export class NewGamePageComponent {
   private readonly authStateService = inject(SneatAuthStateService);
 
   readonly roles = CREATOR_ROLES;
+  readonly sports = SPORTS;
 
   // Whether a user is currently signed in — drives the in-page sign-in
   // affordance and (in Task 4) the explicit authenticated create.
@@ -248,6 +333,7 @@ export class NewGamePageComponent {
 
   // Two team names + colours, schedule, optional metadata, self-declared role —
   // all signals for zoneless-safe change detection.
+  readonly sport = signal('');
   readonly homeName = signal('');
   readonly homeColour = signal('#1f9d55');
   readonly awayName = signal('');
@@ -259,6 +345,11 @@ export class NewGamePageComponent {
   readonly role = signal<CreatorRole>('coach');
   readonly submitting = signal(false);
 
+  // The sport chosen in step 1, resolved to its label/emoji for display.
+  readonly selectedSport = computed(
+    () => this.sports.find((s) => s.id === this.sport()) ?? null,
+  );
+
   readonly canCreate = computed(
     () => this.homeName().trim().length > 0 && this.awayName().trim().length > 0,
   );
@@ -269,6 +360,7 @@ export class NewGamePageComponent {
     // (anon-first-new-game#ac:draft-restored-on-load).
     const draft = loadNewGameDraft();
     if (draft) {
+      if (draft.sport !== undefined) this.sport.set(draft.sport);
       if (draft.homeName !== undefined) this.homeName.set(draft.homeName);
       if (draft.homeColour) this.homeColour.set(draft.homeColour);
       if (draft.awayName !== undefined) this.awayName.set(draft.awayName);
@@ -284,6 +376,7 @@ export class NewGamePageComponent {
     // save action (anon-first-new-game#ac:draft-saved-on-change).
     effect(() =>
       saveNewGameDraft({
+        sport: this.sport(),
         homeName: this.homeName(),
         homeColour: this.homeColour(),
         awayName: this.awayName(),
@@ -303,7 +396,12 @@ export class NewGamePageComponent {
    * The draft is already in localStorage, so the round-trip is loss-free
    * (anon-first-new-game#ac:roundtrip-preserves-draft). */
   signIn(): void {
-    void this.router.navigate(['/login'], { fragment: '/new-game' });
+    void this.router.navigate(['/login'], {
+      fragment: '/new-game',
+      queryParams: {
+        reason: 'Sign in to use a registered sneat.team team for this game.',
+      },
+    });
   }
 
   label(r: CreatorRole): string {

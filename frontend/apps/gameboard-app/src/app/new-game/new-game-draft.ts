@@ -10,6 +10,7 @@ import { CreatorRole } from './game-contract';
 /** Serialized shape of the in-progress new-game form. All fields optional so a
  * partial / older draft still rehydrates what it can. */
 export interface NewGameDraft {
+  sport: string;
   homeName: string;
   homeColour: string;
   awayName: string;
