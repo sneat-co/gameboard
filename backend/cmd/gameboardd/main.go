@@ -8,6 +8,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,14 @@ import (
 
 	"github.com/sneat-co/gameboard/backend/gameboard"
 )
+
+// devIdentity is a DEV-ONLY UserIdentity for the local gameboardd server (and
+// the Playwright E2E, which has no login yet): every request is treated as a
+// fixed dev user, so writes are permitted without real auth. PRODUCTION uses the
+// real Firebase-token adapter wired in sneat-go's pkg/modules/gameboard.
+type devIdentity struct{}
+
+func (devIdentity) UserID(context.Context, string) (string, bool) { return "dev-user", true }
 
 func main() {
 	addr := os.Getenv("GAMEBOARD_ADDR")
@@ -31,7 +40,7 @@ func main() {
 
 	// TODO(gameboard-mvp): replace dalgo2memory with a Firestore-backed dalgo DB.
 	db := dalgo2memory.NewDB()
-	gameboard.NewHandler(gameboard.NewService(gameboard.NewDalgoStore(db))).Register(mux)
+	gameboard.NewHandler(gameboard.NewService(gameboard.NewDalgoStore(db)), devIdentity{}).Register(mux)
 
 	// Optionally serve a built SPA (used by the Playwright E2E for same-origin —
 	// the app and API share an origin, so no CORS is needed). Unknown non-API

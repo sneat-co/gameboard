@@ -17,7 +17,7 @@ func TestCreateAndGetGame(t *testing.T) {
 	s := NewService(NewDalgoStore(dalgo2memory.NewDB()))
 	ctx := context.Background()
 	spaceID := "space-home"
-	g, err := s.CreateGame(ctx,
+	g, err := s.CreateGame(ctx, "organizer-1",
 		et.Side{Name: "Hawks", Colour: "#c00", SpaceID: &spaceID},
 		et.Side{Name: "Foxes", Colour: "#00c"}, // ad-hoc, no spaceID
 		1700000000000)
@@ -27,6 +27,9 @@ func TestCreateAndGetGame(t *testing.T) {
 	if g.GameID == "" || g.Status != et.StatusScheduled {
 		t.Fatalf("bad record: %+v", g)
 	}
+	if g.CreatedBy != "organizer-1" || g.CreatedAt.IsZero() {
+		t.Fatalf("audit fields not stamped: createdBy=%q createdAt=%v", g.CreatedBy, g.CreatedAt)
+	}
 	got, err := s.Game(ctx, g.GameID)
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -34,11 +37,14 @@ func TestCreateAndGetGame(t *testing.T) {
 	if got.Home.Name != "Hawks" || got.Away.Name != "Foxes" || got.Home.SpaceID == nil || got.Away.SpaceID != nil {
 		t.Fatalf("round-trip mismatch: %+v", got)
 	}
+	if got.CreatedBy != "organizer-1" { // createdBy round-trips through the store
+		t.Fatalf("createdBy not persisted: %q", got.CreatedBy)
+	}
 }
 
 func TestCreateGameValidation(t *testing.T) {
 	s := NewService(NewDalgoStore(dalgo2memory.NewDB()))
-	if _, err := s.CreateGame(context.Background(), et.Side{Name: ""}, et.Side{Name: "B"}, 0); !errors.Is(err, ErrInvalidEvent) {
+	if _, err := s.CreateGame(context.Background(), "u", et.Side{Name: ""}, et.Side{Name: "B"}, 0); !errors.Is(err, ErrInvalidEvent) {
 		t.Fatalf("expected invalid, got %v", err)
 	}
 }
@@ -52,7 +58,7 @@ func TestGetGameNotFound(t *testing.T) {
 
 func TestGameStoreUnconfigured(t *testing.T) {
 	s := NewService(errStore{}) // errStore does not implement GameStore
-	if _, err := s.CreateGame(context.Background(), et.Side{Name: "A"}, et.Side{Name: "B"}, 0); err == nil {
+	if _, err := s.CreateGame(context.Background(), "u", et.Side{Name: "A"}, et.Side{Name: "B"}, 0); err == nil {
 		t.Fatal("expected error when game store not configured")
 	}
 	if _, err := s.Game(context.Background(), "x"); !errors.Is(err, ErrGameNotFound) {
@@ -64,6 +70,7 @@ func TestCreateGameOverHTTP(t *testing.T) {
 	srv := newServer()
 	body, _ := json.Marshal(createGameRequest{Home: et.Side{Name: "Hawks", Colour: "#c00"}, Away: et.Side{Name: "Foxes", Colour: "#00c"}})
 	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games", bytes.NewReader(body))
+	req.Header.Set("Authorization", testBearer)
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -73,6 +80,9 @@ func TestCreateGameOverHTTP(t *testing.T) {
 	_ = json.Unmarshal(rec.Body.Bytes(), &g)
 	if g.GameID == "" {
 		t.Fatal("no gameID returned")
+	}
+	if g.CreatedBy != "test-user" { // stamped from the authenticated caller
+		t.Fatalf("createdBy not stamped from auth: %q", g.CreatedBy)
 	}
 
 	// GET the record back
@@ -96,6 +106,7 @@ func TestCreateGameBadBodyOverHTTP(t *testing.T) {
 	srv := newServer()
 	// invalid JSON
 	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games", bytes.NewReader([]byte("nope")))
+	req.Header.Set("Authorization", testBearer)
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -104,9 +115,23 @@ func TestCreateGameBadBodyOverHTTP(t *testing.T) {
 	// missing names
 	body, _ := json.Marshal(createGameRequest{})
 	req = httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games", bytes.NewReader(body))
+	req.Header.Set("Authorization", testBearer)
 	rec = httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+// TestCreateGameRequiresAuth — anonymous create is rejected 401.
+func TestCreateGameRequiresAuth(t *testing.T) {
+	srv := newServer()
+	body, _ := json.Marshal(createGameRequest{Home: et.Side{Name: "A"}, Away: et.Side{Name: "B"}})
+	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games", bytes.NewReader(body))
+	// no Authorization header
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous create: expected 401, got %d", rec.Code)
 	}
 }

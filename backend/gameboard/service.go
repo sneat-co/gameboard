@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	et "github.com/sneat-co/gameboard-ext/backend/eventtimeline"
+	"github.com/strongo/strongoapp/with"
 )
 
 // ErrUnauthorizedSource is returned when a source appends an event type it is
@@ -35,15 +36,27 @@ func NewService(store EventStore) *Service {
 }
 
 // CreateGame creates a new game record with two inline sides and an optional
-// scheduled time, returning the generated gameID. (Verifies scorer-creates-game.)
-func (s *Service) CreateGame(ctx context.Context, home, away et.Side, scheduledMs int64) (GameRecord, error) {
+// scheduled time, stamping the authenticated organizer (createdBy + createdAt
+// via the platform `with` convention), and returns the generated record.
+// (Verifies scorer-creates-game.)
+func (s *Service) CreateGame(ctx context.Context, createdBy string, home, away et.Side, scheduledMs int64) (GameRecord, error) {
 	if s.games == nil {
 		return GameRecord{}, errors.New("gameboard: game store not configured")
 	}
 	if home.Name == "" || away.Name == "" {
 		return GameRecord{}, ErrInvalidEvent
 	}
-	g := GameRecord{GameID: newGameID(), Home: home, Away: away, ScheduledMs: scheduledMs, Status: et.StatusScheduled}
+	g := GameRecord{
+		GameID:      newGameID(),
+		Home:        home,
+		Away:        away,
+		ScheduledMs: scheduledMs,
+		Status:      et.StatusScheduled,
+		CreatedFields: with.CreatedFields{
+			CreatedAtField: with.CreatedAtField{CreatedAt: nowFunc()},
+			CreatedByField: with.CreatedByField{CreatedBy: createdBy},
+		},
+	}
 	if err := s.games.CreateGame(ctx, g); err != nil {
 		return GameRecord{}, err
 	}

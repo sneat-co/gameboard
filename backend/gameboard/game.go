@@ -6,23 +6,31 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/dal-go/dalgo/dal"
 	et "github.com/sneat-co/gameboard-ext/backend/eventtimeline"
+	"github.com/strongo/strongoapp/with"
 )
 
 // ErrGameNotFound is returned when a game record does not exist.
 var ErrGameNotFound = errors.New("gameboard: game not found")
 
+// nowFunc is a seam so tests can pin the created-at timestamp.
+var nowFunc = time.Now
+
 // GameRecord is the game aggregate at /ext/gameboard/games/{gameID}. A game
 // belongs to no space; each side is inline {name, colour, spaceID?} — spaceID is
 // nil for an ad-hoc name (first-use-backprop fills it when a team space links).
+// CreatedFields (createdBy + createdAt) record the authenticated organizer, per
+// the platform `with` convention (same as a Calendarius happening).
 type GameRecord struct {
-	GameID      string         `json:"gameID"`
-	Home        et.Side        `json:"home"`
-	Away        et.Side        `json:"away"`
-	ScheduledMs int64          `json:"scheduledMs"`
-	Status      et.GameStatus  `json:"status"`
+	GameID      string        `json:"gameID"`
+	Home        et.Side       `json:"home"`
+	Away        et.Side       `json:"away"`
+	ScheduledMs int64         `json:"scheduledMs"`
+	Status      et.GameStatus `json:"status"`
+	with.CreatedFields
 }
 
 // GameStore persists the game aggregate document (the parent of the event log).
@@ -31,17 +39,19 @@ type GameStore interface {
 	GetGame(ctx context.Context, gameID string) (GameRecord, error)
 }
 
-// gameRecordDBO is the persisted form, stored at the gameKey doc.
+// gameRecordDBO is the persisted form, stored at the gameKey doc. with.CreatedFields
+// carries firestore tags (createdBy/createdAt) so they round-trip by key.
 type gameRecordDBO struct {
 	Home        et.Side       `json:"home"`
 	Away        et.Side       `json:"away"`
 	ScheduledMs int64         `json:"scheduledMs"`
 	Status      et.GameStatus `json:"status"`
+	with.CreatedFields
 }
 
 // CreateGame writes the game record at /ext/gameboard/games/{gameID}.
 func (s *dalgoStore) CreateGame(ctx context.Context, g GameRecord) error {
-	dbo := gameRecordDBO{Home: g.Home, Away: g.Away, ScheduledMs: g.ScheduledMs, Status: g.Status}
+	dbo := gameRecordDBO{Home: g.Home, Away: g.Away, ScheduledMs: g.ScheduledMs, Status: g.Status, CreatedFields: g.CreatedFields}
 	return s.db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
 		rec := dal.NewRecordWithData(gameKey(g.GameID), &dbo)
 		rec.SetError(nil) // mark data valid for write (dalgo2firestore reads record.Data())
@@ -68,7 +78,7 @@ func (s *dalgoStore) GetGame(ctx context.Context, gameID string) (GameRecord, er
 	if err != nil {
 		return GameRecord{}, err
 	}
-	return GameRecord{GameID: gameID, Home: dbo.Home, Away: dbo.Away, ScheduledMs: dbo.ScheduledMs, Status: dbo.Status}, nil
+	return GameRecord{GameID: gameID, Home: dbo.Home, Away: dbo.Away, ScheduledMs: dbo.ScheduledMs, Status: dbo.Status, CreatedFields: dbo.CreatedFields}, nil
 }
 
 // newGameID returns a random dashless hex id (same shape as event ids).
