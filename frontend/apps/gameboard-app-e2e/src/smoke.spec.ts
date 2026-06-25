@@ -29,7 +29,7 @@ test('app boots at /app/ and redirects unauthenticated user to login', async ({
   );
 });
 
-test('deep link /app/new-game renders the shell and redirects to login (SPA fallback)', async ({
+test('deep link /app/new-game renders the form for an anonymous user (no login redirect)', async ({
   page,
 }) => {
   const pageErrors: string[] = [];
@@ -43,9 +43,13 @@ test('deep link /app/new-game renders the shell and redirects to login (SPA fall
   // The shell attached on a deep link → SPA fallback served index.html.
   await expect(page.locator('gameboard-root')).toBeAttached();
 
-  // new-game is account-gated (AuthGuard), so an anonymous deep link redirects
-  // to login — proving the route resolved client-side, not 404'd by the server.
-  await page.waitForURL(/login/, { timeout: 20_000 });
+  // Anonymous-first (anon-first-new-game#ac:renders-while-signed-out): the route
+  // is no longer auth-guarded, so an anonymous visitor sees the new-game form
+  // itself rather than being redirected to /login.
+  await expect(page.locator('gameboard-new-game-page')).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page).toHaveURL(/\/new-game/);
 
   expect(pageErrors, `uncaught page errors:\n${pageErrors.join('\n')}`).toEqual(
     [],

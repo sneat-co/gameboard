@@ -17,15 +17,18 @@ export const appRoutes: Route[] = [
     data: { authGuardPipe: () => redirectToLoginIfNotSignedIn },
   },
   {
-    // New game — the on-ramp to a GameBoard.live game (new-game Feature).
-    // Account-gated: creating a game requires sign-in (AC:account-required-to-create).
+    // New game — the on-ramp to a GameBoard.live game.
+    // Anonymous-first (anon-first-new-game Feature): intentionally NOT
+    // auth-guarded so a first-time/anonymous visitor can fill the form with zero
+    // friction. Sign-in is offered in-page at any moment, and persisting the
+    // game to the backend still requires an explicit authenticated action
+    // (handled inside NewGamePageComponent).
     path: 'new-game',
     loadComponent: () =>
       import('./new-game/new-game-page.component').then(
         (m) => m.NewGamePageComponent,
       ),
-    canActivate: [AuthGuard],
-    data: { title: 'New game', authGuardPipe: () => redirectToLoginIfNotSignedIn },
+    data: { title: 'New game' },
   },
   {
     // Space-scoped routes host the template pages, mirroring sneat-app's

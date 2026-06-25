@@ -2,9 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
+import { map } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import {
   IonButton,
@@ -26,7 +30,13 @@ import {
   ToastController,
 } from '@ionic/angular/standalone';
 import { CREATOR_ROLES, CreatorRole, Side } from './game-contract';
+import {
+  clearNewGameDraft,
+  loadNewGameDraft,
+  saveNewGameDraft,
+} from './new-game-draft';
 import { GameService } from '../game.service';
+import { SneatAuthStateService } from '@sneat/auth-core';
 
 // New game screen — the on-ramp to a GameBoard.live game.
 // Implements the approved `sports/gameboard-live/new-game` Feature / prototype:
@@ -78,6 +88,23 @@ import { GameService } from '../game.service';
           >
         </ion-card-header>
         <ion-card-content>
+          <!-- Sign-in affordance — non-blocking. Anonymous users can ignore it
+               and keep filling the form; signing in lets them use a registered
+               sneat.team team and returns them right back here
+               (anon-first-new-game#ac:signin-affordance-visible). -->
+          @if (!isSignedIn()) {
+            <ion-item lines="none" class="signin-hint">
+              <ion-note>Have a sneat.team account?</ion-note>
+              <ion-button
+                slot="end"
+                fill="outline"
+                size="small"
+                (click)="signIn()"
+                >Sign in</ion-button
+              >
+            </ion-item>
+          }
+
           <!-- Home -->
           <ion-item>
             <input
@@ -207,8 +234,17 @@ import { GameService } from '../game.service';
 export class NewGamePageComponent {
   private readonly gameService = inject(GameService);
   private readonly toasts = inject(ToastController);
+  private readonly router = inject(Router);
+  private readonly authStateService = inject(SneatAuthStateService);
 
   readonly roles = CREATOR_ROLES;
+
+  // Whether a user is currently signed in — drives the in-page sign-in
+  // affordance and (in Task 4) the explicit authenticated create.
+  readonly isSignedIn = toSignal(
+    this.authStateService.authStatus.pipe(map((s) => s === 'authenticated')),
+    { initialValue: false },
+  );
 
   // Two team names + colours, schedule, optional metadata, self-declared role —
   // all signals for zoneless-safe change detection.
@@ -227,6 +263,49 @@ export class NewGamePageComponent {
     () => this.homeName().trim().length > 0 && this.awayName().trim().length > 0,
   );
 
+  constructor() {
+    // Rehydrate the most-recent draft so an anonymous user who navigated away
+    // (e.g. through the full-page redirect sign-in) resumes where they left off
+    // (anon-first-new-game#ac:draft-restored-on-load).
+    const draft = loadNewGameDraft();
+    if (draft) {
+      if (draft.homeName !== undefined) this.homeName.set(draft.homeName);
+      if (draft.homeColour) this.homeColour.set(draft.homeColour);
+      if (draft.awayName !== undefined) this.awayName.set(draft.awayName);
+      if (draft.awayColour) this.awayColour.set(draft.awayColour);
+      if (draft.date !== undefined) this.date.set(draft.date);
+      if (draft.time !== undefined) this.time.set(draft.time);
+      if (draft.venue !== undefined) this.venue.set(draft.venue);
+      if (draft.competition !== undefined) this.competition.set(draft.competition);
+      if (draft.role) this.role.set(draft.role);
+    }
+
+    // Auto-save every field change as the single most-recent draft — no explicit
+    // save action (anon-first-new-game#ac:draft-saved-on-change).
+    effect(() =>
+      saveNewGameDraft({
+        homeName: this.homeName(),
+        homeColour: this.homeColour(),
+        awayName: this.awayName(),
+        awayColour: this.awayColour(),
+        date: this.date(),
+        time: this.time(),
+        venue: this.venue(),
+        competition: this.competition(),
+        role: this.role(),
+      }),
+    );
+  }
+
+  /** Start sign-in and return to this page afterwards. The login page reads the
+   * URL hash as the post-login redirect target (see redirectToLoginIfNotSignedIn
+   * in @sneat/auth-core), so the fragment is the router-relative return path.
+   * The draft is already in localStorage, so the round-trip is loss-free
+   * (anon-first-new-game#ac:roundtrip-preserves-draft). */
+  signIn(): void {
+    void this.router.navigate(['/login'], { fragment: '/new-game' });
+  }
+
   label(r: CreatorRole): string {
     return r
       .split('-')
@@ -236,6 +315,15 @@ export class NewGamePageComponent {
 
   async create(): Promise<void> {
     if (!this.canCreate() || this.submitting()) return;
+    // Persisting a game requires authentication and an explicit action. An
+    // anonymous user who triggers create is routed through sign-in first; the
+    // draft stays local (localStorage) and nothing is written to the backend
+    // until they return and explicitly create while signed in
+    // (anon-first-new-game#ac:anonymous-create-routes-through-signin).
+    if (!this.isSignedIn()) {
+      this.signIn();
+      return;
+    }
     this.submitting.set(true);
     const home: Side = { name: this.homeName().trim(), colour: this.homeColour() };
     const away: Side = { name: this.awayName().trim(), colour: this.awayColour() };
@@ -243,6 +331,8 @@ export class NewGamePageComponent {
       this.date() && this.time() ? Date.parse(`${this.date()}T${this.time()}`) : 0;
     try {
       const game = await this.gameService.createGame(home, away, scheduledMs);
+      // The game is now persisted server-side; drop the local draft.
+      clearNewGameDraft();
       await this.notify(`Game created · #${game.id}`, 'success');
       // TODO: navigate to the game scoreboard once that route exists.
     } catch {
