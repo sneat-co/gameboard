@@ -21,3 +21,27 @@
 @include meta.load-css('@ionic/angular/css/flex-utils.css');
 
 @include meta.load-css('@sneat/components/src/sneat-styles.scss');
+
+/* Shared GameBoard design tokens (single source of truth). */
+@include meta.load-css('../../../../design/tokens.css');
+
+/* Map shared tokens onto Ionic's theme variables. */
+:root {
+  --ion-color-primary: var(--gb-accent);
+  --ion-color-primary-rgb: 0, 229, 160;
+  --ion-color-primary-contrast: var(--gb-accent-contrast);
+  --ion-color-primary-contrast-rgb: 4, 35, 26;
+  --ion-color-primary-shade: var(--gb-accent-strong);
+  --ion-color-primary-tint: #1ae8ab;
+
+  --ion-color-success: var(--gb-home);
+  --ion-color-warning: var(--gb-energy);
+  --ion-color-danger: var(--gb-warn);
+
+  --ion-background-color: var(--gb-bg);
+  --ion-background-color-rgb: 238, 241, 245;
+  --ion-text-color: var(--gb-ink);
+  --ion-text-color-rgb: 17, 24, 28;
+
+  --ion-font-family: var(--gb-font-sans);
+}
