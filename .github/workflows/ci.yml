@@ -46,16 +46,16 @@ jobs:
         run: npm i -g pnpm
       - name: Install deps
         working-directory: frontend
-        run: pnpm install --ignore-scripts
-      - name: Build SPA
+        run: pnpm install --frozen-lockfile
+      - name: Build app
         working-directory: frontend
-        run: node_modules/.bin/ng build
-      - name: Unit tests (vitest)
+        run: pnpm exec nx build gameboard-app
+      - name: Unit tests
         working-directory: frontend
-        run: node node_modules/vitest/vitest.mjs run
+        run: pnpm exec nx test gameboard-app
       - name: Install Playwright browser
         working-directory: frontend
-        run: node_modules/.bin/playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - name: Umbrella full-game E2E (UI → API → backend → fold)
         working-directory: frontend
-        run: node_modules/.bin/playwright test
+        run: pnpm exec nx e2e gameboard-app-e2e
