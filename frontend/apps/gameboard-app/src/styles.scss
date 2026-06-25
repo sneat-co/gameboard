@@ -27,12 +27,16 @@
 
 /* Map shared tokens onto Ionic's theme variables. */
 :root {
-  --ion-color-primary: var(--gb-accent);
-  --ion-color-primary-rgb: 0, 229, 160;
-  --ion-color-primary-contrast: var(--gb-accent-contrast);
-  --ion-color-primary-contrast-rgb: 4, 35, 26;
-  --ion-color-primary-shade: var(--gb-accent-strong);
-  --ion-color-primary-tint: #1ae8ab;
+  // Primary is used by Ionic as text/border on outline & clear buttons and on
+  // links — not just as a fill — so it must be AA-readable on a light surface.
+  // Bright mint (--gb-accent) fails that, so the app primary is the darker
+  // emerald (--gb-accent-ink, 6.3:1 on white) with white contrast for fills.
+  --ion-color-primary: var(--gb-accent-ink);
+  --ion-color-primary-rgb: 3, 102, 73;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #02543c;
+  --ion-color-primary-tint: #1a7558;
 
   --ion-color-success: var(--gb-home);
   --ion-color-success-rgb: 31, 157, 85;
@@ -62,5 +66,3 @@
 
   --ion-font-family: var(--gb-font-sans);
 }
-
-/* deploy fingerprint: 2026-06-25 worker reconnect verification */
