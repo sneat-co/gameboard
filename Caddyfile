@@ -1,0 +1,39 @@
+# Local dev reverse proxy emulating the production Cloudflare deployment:
+#   https://gameboard.localhost/        -> Astro landing  (astro dev, :4321)
+#   https://gameboard.localhost/app/*   -> Angular app     (ng serve --serve-path=/app/, :4301)
+#
+# Mirrors the Sneat Site Hosting & Auth Pattern
+# (backstage: spec/features/site-hosting-pattern): landing owns root, app
+# under the /app prefix, and the app responses carry the COOP header that
+# lets Firebase signInWithPopup work.
+#
+# Listening on :8443 so it runs WITHOUT sudo (binding :443 needs root on
+# macOS). For the clean https://gameboard.localhost/ (port 443):
+#   sudo caddy run --config Caddyfile        # privileged port
+#   caddy trust                              # trust the local CA (one-time)
+# and change ":8443" below to just "gameboard.localhost".
+
+gameboard.localhost {
+	tls internal
+
+	# App: Angular dev server already serves under /app/ (--serve-path=/app/),
+	# so no prefix stripping here — the path matches production.
+	@app path /app /app/*
+	handle @app {
+		header Cross-Origin-Opener-Policy "same-origin-allow-popups"
+		reverse_proxy 127.0.0.1:4301
+	}
+
+	# (optional) Firebase redirect-auth: uncomment to proxy the reserved
+	# paths to the shared project, mirroring the production Worker.
+	# handle /__/auth/* {
+	# 	reverse_proxy https://sneat-eur3-1.firebaseapp.com {
+	# 		header_up Host sneat-eur3-1.firebaseapp.com
+	# 	}
+	# }
+
+	# Landing: everything else -> Astro dev server.
+	handle {
+		reverse_proxy 127.0.0.1:4321
+	}
+}
