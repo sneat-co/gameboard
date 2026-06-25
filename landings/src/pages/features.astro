@@ -1,0 +1,47 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import FeatureCard from "../components/FeatureCard.astro";
+import CTASection from "../components/CTASection.astro";
+
+const features = [
+  { icon: "📊", title: "Live scoreboard", description: "A clear, real-time score that updates the instant you tap. No refresh, no lag." },
+  { icon: "📺", title: "Big screen mode", description: "A full-screen layout designed to be readable from the back row of the gym." },
+  { icon: "📱", title: "Mobile spectator view", description: "Share one link so spectators can follow the score from their own phones." },
+  { icon: "⏱️", title: "Game clock", description: "Start, stop, reset and adjust the clock with simple one-handed controls." },
+  { icon: "🎨", title: "Team names & colours", description: "Set team names and colours so every game looks like your game." },
+  { icon: "📈", title: "Stats & rosters", description: "Track player stats and rosters across a season.", badge: "Future" },
+  { icon: "🗂️", title: "Brackets & tournaments", description: "Run knockout and round-robin formats end to end.", badge: "Future" },
+  { icon: "🔗", title: "Shareable links", description: "Every game gets a link you can post, text or print as a QR code." },
+];
+---
+
+<BaseLayout
+  title="Features — GameBoard.live"
+  description="Live scoreboard, big screen mode, mobile spectator view and a game clock — everything you need to run game day."
+>
+  <section class="section">
+    <div class="container text-center section-head">
+      <p class="eyebrow">Features</p>
+      <h1>Everything you need on game day</h1>
+      <p>GameBoard.live turns any phone, tablet and screen into a connected scoreboard system.</p>
+    </div>
+    <div class="container">
+      <div class="grid grid-3">
+        {features.map((f) => <FeatureCard icon={f.icon} title={f.title} description={f.description} badge={f.badge} />)}
+      </div>
+    </div>
+  </section>
+
+  <CTASection />
+</BaseLayout>
+
+<style>
+  .section-head {
+    max-width: 640px;
+    margin-inline: auto;
+    margin-bottom: var(--space-4);
+  }
+  h1 {
+    font-size: clamp(2rem, 6vw, 3rem);
+  }
+</style>
