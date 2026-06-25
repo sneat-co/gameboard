@@ -56,22 +56,11 @@ jobs:
       - name: Install Playwright browser
         working-directory: frontend
         run: pnpm exec playwright install --with-deps
-      # The Firestore emulator is a Java app; firebase-tools runs it.
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - name: Install Firebase CLI
-        run: npm i -g firebase-tools
-      # Real full-stack E2E: `firebase emulators:exec` boots the Firestore
-      # emulator (per firebase.json at the repo root) and injects
-      # FIRESTORE_EMULATOR_HOST; the Playwright webServer then starts the real
-      # backend `gameboardd` (backend/cmd/gameboardd) — which reads that env to
-      # use the Firestore-emulator dalgo DB and serves the built SPA same-origin
-      # via GAMEBOARD_STATIC_DIR. So the chain under test is the real
-      #   UI → api4gameboard → gameboardd → dalgo → Firestore emulator → fold.
-      # NOTE: depends on the frontend rebuild's Slice-0 harness (firebase.json +
-      # gameboardd's Firestore-store selection + the emulator-backed Playwright
-      # webServer). This job stays red until that harness lands.
-      - name: Umbrella full-game E2E (UI → API → gameboardd → Firestore emulator → fold)
-        run: firebase emulators:exec --only firestore --project demo-gameboard 'cd frontend && pnpm exec nx e2e gameboard-app-e2e'
+      - name: 'Install Caddy (E2E web server: /app prefix + SPA history fallback)'
+        run: |
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.8.4/caddy_2.8.4_linux_amd64.tar.gz -o /tmp/caddy.tgz
+          sudo tar -xzf /tmp/caddy.tgz -C /usr/local/bin caddy
+          caddy version
+      - name: Umbrella full-game E2E (UI → API → backend → fold)
+        working-directory: frontend
+        run: pnpm exec nx e2e gameboard-app-e2e
