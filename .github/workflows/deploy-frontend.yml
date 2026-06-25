@@ -1,0 +1,22 @@
+name: Deploy frontend (Cloudflare)
+
+# Manual deploy of the gameboard Ionic app to Cloudflare (Workers static
+# assets) under gameboard.live/app, via the shared reusable workflow.
+# Manual (workflow_dispatch) on purpose: it requires the CLOUDFLARE_*
+# repository secrets, so it must not run automatically until those are set.
+# Once the secrets exist, switch the trigger to `push: branches: [main]` if
+# you want auto-deploy. Implements backstage spec/features/site-hosting-pattern.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: sneat-co/cicd/.github/workflows/cf-deploy.yml@main
+    with:
+      working-directory: frontend
+      build-target: gameboard-app
+      wrangler-config: wrangler.jsonc
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
