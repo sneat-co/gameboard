@@ -88,7 +88,10 @@ start go "$GO_DIR" env \
 	go run ./cmd/sneatserver
 
 # 3. Angular app under /app/ (matches the Caddy route and the build baseHref).
-start app "$APP_DIR" pnpm exec ng serve gameboard-app --serve-path=/app/ --host 127.0.0.1 --port 4301
+# This is an Nx workspace (no angular.json), so use `nx serve`, not bare
+# `ng serve` (which errors: "not available ... outside a workspace"). The
+# @angular/build:dev-server executor spells the option --servePath.
+start app "$APP_DIR" pnpm exec nx serve gameboard-app --servePath=/app/ --host 127.0.0.1 --port 4301
 
 # 4. Astro landing at the root.
 start landing "$LANDING_DIR" pnpm dev --host 127.0.0.1
@@ -96,7 +99,9 @@ start landing "$LANDING_DIR" pnpm dev --host 127.0.0.1
 # 5. Reverse proxy. Wait for the upstreams so early requests don't 502.
 wait_port 4321 "landing"
 wait_port 4301 "app"
-start caddy "$LANDING_DIR" caddy run --config "$CADDYFILE_DEV"
+# --adapter caddyfile: the temp config isn't named "Caddyfile", so Caddy can't
+# auto-detect the format and would otherwise parse it as JSON and fail on '#'.
+start caddy "$LANDING_DIR" caddy run --adapter caddyfile --config "$CADDYFILE_DEV"
 
 echo
 echo "==> Up. Open:"
