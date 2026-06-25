@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameBoard.live — game screens (prototype)</title>
+<style>
+  :root{
+    --home:#1f9d55; --home-soft:#e6f6ee;
+    --away:#2563eb; --away-soft:#e7effb;
+    --warn:#d64545; --warn-soft:#fbeaea;
+    --ink:#11181c; --muted:#6b7785; --line:#e6e9ee; --bg:#eef1f5;
+    --fire:#ff6a00; --accent:#2b6df6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+       display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 12px 48px;-webkit-font-smoothing:antialiased}
+  h1{font-size:15px;color:var(--muted);font-weight:600;margin:2px 0 0}
+  .tabs{display:flex;gap:6px;background:#fff;padding:5px;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.08);flex-wrap:wrap;justify-content:center}
+  .tabs button{border:0;background:transparent;font:inherit;font-weight:600;color:var(--muted);padding:8px 15px;border-radius:999px;cursor:pointer}
+  .tabs button.on{background:var(--ink);color:#fff}
+  .a11y{font-size:12px;color:var(--muted);max-width:392px;text-align:center}
+  a.tap{color:inherit;text-decoration:none;border-bottom:1.5px dotted #b9c2cd}
+
+  .phone{width:390px;max-width:96vw;background:#fff;border-radius:30px;box-shadow:0 18px 50px rgba(20,30,50,.18);
+         overflow:hidden;border:1px solid var(--line)}
+  .screen{padding:0 0 8px}
+
+  .status{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;font-weight:700;font-size:13px;letter-spacing:.02em}
+  .status .left{display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .live .dot{background:#19c37d;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(25,195,125,.55)}70%{box-shadow:0 0 0 8px rgba(25,195,125,0)}100%{box-shadow:0 0 0 0 rgba(25,195,125,0)}}
+  .fresh{color:var(--muted);font-weight:600;font-size:12px}
+  .chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .chip.sch{background:#eef1f5;color:#67727e}
+
+  .board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:10px 16px 6px;gap:6px}
+  .team{display:flex;flex-direction:column;gap:3px}
+  .badge{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px}
+  .home .badge{background:var(--home)} .away .badge{background:var(--away)}
+  .tname{font-weight:800;font-size:15px;line-height:1.05}
+  .score{font-weight:800;font-size:52px;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1}
+  .home .score{color:var(--home)} .away .score{color:var(--away)}
+  .vs{color:var(--muted);font-weight:700;font-size:13px;padding:0 4px;text-align:center}
+
+  .meta{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;padding:4px 16px 10px;font-size:12px;color:var(--muted);font-weight:600}
+  .meta .away{text-align:right}
+  .bonus{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:var(--fire);border-radius:5px;padding:1px 5px;margin-left:4px;vertical-align:middle}
+  .poss{display:grid;place-items:center}
+  .poss b{font-size:11px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+  .bonusnote{font-size:10.5px;color:var(--muted);text-align:center;margin:-4px 16px 6px}
+
+  .periods{display:flex;justify-content:center;gap:14px;padding:8px 16px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);
+           font-variant-numeric:tabular-nums;font-size:13px;margin:0 0 10px}
+  .periods .col{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:30px}
+  .periods .h{font-size:10px;color:var(--muted);font-weight:700}
+  .periods .v{font-weight:700}
+
+  /* LAST PLAY card — now carries the endorse action + reaction feed */
+  .lastcard{position:relative;margin:0 16px 12px;padding:12px 14px;border:1px solid #ffe2cf;border-radius:16px;
+            background:linear-gradient(180deg,#fff6f0,#fff);overflow:hidden}
+  .lastcard .hd{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
+  .lastcard .play{font-size:15px;font-weight:700;margin:3px 0 10px}
+  .lastcard .pts{color:var(--home);font-weight:800}
+  .endorse-row{display:flex;align-items:center;gap:12px}
+  .endorse{display:flex;align-items:center;gap:8px;border:0;background:var(--ink);color:#fff;border-radius:12px;
+           padding:11px 16px;font:inherit;font-weight:800;cursor:pointer}
+  .endorse:disabled{opacity:.45;cursor:not-allowed}
+  .endorse .e{font-size:18px}
+  .tally{font-weight:800;color:var(--fire);font-variant-numeric:tabular-nums}
+  .left-note{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600;text-align:right}
+  .fly{position:absolute;bottom:46px;font-size:22px;animation:rise 1.7s ease-out forwards;opacity:0;pointer-events:none}
+  @keyframes rise{0%{transform:translateY(0) scale(.8);opacity:0}15%{opacity:1}100%{transform:translateY(-72px) scale(1.3) rotate(8deg);opacity:0}}
+
+  .venue{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 16px 4px;padding:11px 12px;border-radius:12px;background:#f0f5ff;font-size:13px;font-weight:600}
+  .pillbtn{border:0;background:#11181c;color:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-weight:700;cursor:pointer}
+  .foot{text-align:center;color:var(--muted);font-size:11px;padding:8px 0 4px}
+
+  /* pre-game */
+  .sec{margin:10px 16px}
+  .sec h3{margin:0 0 8px;font-size:13px;letter-spacing:.02em;color:var(--ink)}
+  .predict{display:flex;gap:10px;align-items:flex-end}
+  .predict .f{flex:1}
+  .predict label{font-size:11px;color:var(--muted);font-weight:700}
+  .predict input{width:100%;font:inherit;font-weight:800;font-size:20px;text-align:center;border:1px solid var(--line);border-radius:10px;padding:8px}
+  .predict .home input{color:var(--home)} .predict .away input{color:var(--away)}
+  .lock{width:calc(100% - 32px);margin:10px 16px 4px;border:0;background:var(--accent);color:#fff;border-radius:12px;padding:12px;font:inherit;font-weight:800;cursor:pointer}
+  .predict-card{margin:12px 16px;padding:14px 14px 16px;border:1px solid #dce7fb;border-radius:16px;background:#f7faff}
+  .predict-card h3{margin:0 0 10px;font-size:14px}
+  .predict-card .lock{width:100%;margin:12px 0 0}
+  .predict-card .note{margin:8px 0 0}
+  .predict-card .consensus{margin:6px 0 0;padding:7px 11px}
+  .predict-card .consensus:first-of-type{margin-top:12px}
+  .note{font-size:11px;color:var(--muted);text-align:center;margin:2px 16px}
+  .consensus{margin:8px 16px;padding:11px 12px;border-radius:12px;background:#f6f8fb;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .consensus b{font-variant-numeric:tabular-nums}
+  .rsvp-card{margin:12px 16px;padding:12px 14px;border:1px solid var(--line);border-radius:14px}
+  .rsvp-card h3{margin:0 0 8px;font-size:14px}
+  .rsvp-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+  .rsvp-row:first-of-type{border-top:0}
+  .rsvp-grp{font-weight:700}
+  .rsvp-tally{color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+  .rsvp-tally .rgo{color:var(--home);font-weight:800}
+  .rsvp-tally .rmb{color:#c98a00;font-weight:800}
+  .rsvp-cta{width:100%;margin-top:10px;border:0;background:var(--accent);color:#fff;border-radius:11px;padding:11px;font:inherit;font-weight:800;cursor:pointer}
+  .rsvp-cta.on{background:var(--home)}
+  .share-block{display:flex;align-items:center;gap:14px;margin:12px 16px;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+  .share-block .qr-lg{width:68px;height:68px;border-radius:10px;background:conic-gradient(#11181c 25%,#fff 0 50%,#11181c 0 75%,#fff 0);background-size:15px 15px;border:4px solid #11181c;flex:none}
+  .share-block .share-btn{flex:1;border:0;background:var(--accent);color:#fff;border-radius:12px;padding:15px;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
+  .link{color:var(--accent);font-weight:700;text-decoration:none}
+  .venue-card{display:flex;align-items:center;gap:10px;margin:8px 16px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);font-size:13px}
+  .venue-card .pin{font-size:18px}
+  .venue-card .vtext{flex:1;line-height:1.25}
+  .venue-card .dir{color:var(--accent);font-weight:700;white-space:nowrap}
+  .rsvp{margin-top:8px;width:104px;text-align:center;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:9px;padding:6px 12px;font:inherit;font-weight:800;font-size:13px;cursor:pointer}
+
+  /* final */
+  .finalhero{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px;gap:8px;background:#11181c;color:#fff}
+  .finalhero .sc{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums}
+  .finalhero .home .sc{color:#5fd39a} .finalhero .away .sc{color:#8fb4ff}
+  .wintag{display:inline-block;font-size:10px;font-weight:800;background:#19c37d;color:#062;border-radius:999px;padding:2px 7px;margin-top:4px}
+  .cta{margin:12px 16px;padding:14px;border-radius:14px;border:1px solid var(--line)}
+  .cta.vote{background:var(--home-soft);border-color:#bfe6cf}
+  .cta h3{margin:0 0 3px;font-size:15px}
+  .cta p{margin:0 0 10px;font-size:12px;color:var(--muted)}
+  .cta button,.cta a{display:inline-block;border:0;background:var(--home);color:#fff;border-radius:10px;padding:10px 16px;font:inherit;font-weight:800;cursor:pointer;text-decoration:none}
+  .cta.recap a{background:var(--ink)}
+
+  /* GAME BOARD — TV / projector big-screen */
+  .tv{width:760px;max-width:96vw;aspect-ratio:16/9;background:radial-gradient(120% 120% at 50% 0%,#15202b,#0a0f14);
+      border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.35);color:#fff;padding:26px 34px;display:flex;flex-direction:column;
+      border:1px solid #1d2730;position:relative}
+  .tv .toprow{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#9fb0bf;font-weight:700;letter-spacing:.04em}
+  .tv .clock{font-variant-numeric:tabular-nums;font-weight:900;color:#ffd24a;font-size:40px;line-height:1;text-shadow:0 0 18px rgba(255,200,74,.45)}
+  .tv .tv-progress{height:3px;background:rgba(255,255,255,.07);border-radius:99px;margin:14px 0 10px;overflow:hidden}
+  .tv .tv-progress i{display:block;height:100%;width:43%;background:rgba(255,210,74,.45)}
+  .tv .livetag{display:inline-flex;align-items:center;gap:7px}
+  .tv .scorewrap{flex:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+  .tv .tm{display:flex;flex-direction:column;gap:8px}
+  .tv .tm.away{text-align:right;align-items:flex-end}
+  .tv .nm{font-size:26px;font-weight:800;letter-spacing:.01em}
+  .tv .nm small{display:block;font-size:13px;color:#9fb0bf;font-weight:600}
+  .tv .big{font-size:110px;font-weight:900;line-height:.9;font-variant-numeric:tabular-nums}
+  .tv .home .big{color:#5fd39a} .tv .away .big{color:#8fb4ff}
+  .tv .dash{font-size:48px;color:#3b4a57;font-weight:800;line-height:1}
+  .tv .mid{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .tv .poss-ind{color:#7f8d99;font-weight:700;font-size:13px;line-height:1;text-align:center;white-space:nowrap}
+  .tv .sub{font-size:13px;color:#9fb0bf;font-weight:700;margin-top:6px;white-space:nowrap}
+  .tv .bonus2{font-size:11px;font-weight:800;color:#0a0f14;background:#ff8a3d;border-radius:5px;padding:1px 6px;margin-left:6px}
+  .tv .ticker{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #1d2730;padding-top:12px;font-size:14px;color:#c7d2db;font-weight:700}
+  .tv .qr{width:60px;height:60px;border-radius:8px;background:conic-gradient(#fff 25%,#0a0f14 0 50%,#fff 0 75%,#0a0f14 0);background-size:14px 14px;border:4px solid #fff}
+  .tv .qrcap{font-size:11px;color:#9fb0bf;font-weight:600;text-align:right}
+  .tvnote{font-size:12px;color:var(--muted);margin-top:8px}
+
+  /* COACH CONSOLE — operator (role-gated) bench surface */
+  .rolebar{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:#11181c;color:#fff;font-weight:700;font-size:13px}
+  .rolebar .role{display:flex;align-items:center;gap:8px}
+  .rolebar .whistle{background:var(--accent);color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;letter-spacing:.05em}
+  .rolebar .livemini{display:flex;align-items:center;gap:7px;color:#5fd39a;font-weight:800;font-size:12px;letter-spacing:.05em}
+  .rolebar .dot{background:#19c37d}
+  .miniscore{display:flex;align-items:center;justify-content:center;gap:12px;padding:9px 16px;font-weight:800;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line)}
+  .miniscore .h{color:var(--home)} .miniscore .a{color:var(--away)} .miniscore .cl{color:var(--muted);font-weight:700;font-size:12px}
+  .req{margin:12px 16px;padding:12px 14px;border:1px solid var(--line);border-radius:14px}
+  .req h3{margin:0 0 10px;font-size:13px;display:flex;align-items:center;justify-content:space-between}
+  .req .to{font-size:11px;color:var(--muted);font-weight:600}
+  .toctrl{display:flex;align-items:center;justify-content:space-between}
+  .toctrl .dots{font-size:12px;color:var(--muted);font-weight:700}
+  .tobtn,.go{border:0;color:#fff;border-radius:11px;font:inherit;font-weight:800;cursor:pointer}
+  .tobtn{background:var(--home);padding:10px 16px}
+  .go{width:100%;margin-top:10px;background:var(--accent);padding:11px}
+  .tobtn:disabled,.go:disabled{opacity:.5;cursor:default}
+  .subbar{margin:10px 16px 0}
+  .subbar .go{margin-top:0}
+  .subcount{font-size:11px;color:var(--muted);font-weight:700;text-align:center;margin-top:7px}
+  .roster{margin:12px 16px}
+  .statshd,.prow{display:grid;grid-template-columns:24px 1fr 34px 40px 38px;gap:8px;align-items:center}
+  .statshd{font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.05em;padding:0 0 3px}
+  .statshd .s{text-align:right}
+  .prow{padding:7px 6px;border-top:1px solid var(--line);font-size:13px;cursor:pointer;border-radius:8px;transition:background .12s}
+  .prow .jersey{font-weight:800;color:var(--muted);text-align:center}
+  .prow .pname{font-weight:700}
+  .prow .stat{font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+  .prow .ft{color:var(--warn)}
+  .foulflag{font-size:9px;font-weight:800;color:#fff;background:var(--warn);border-radius:5px;padding:1px 4px;margin-left:3px}
+  #oncourt .prow.sel{background:var(--warn-soft);box-shadow:inset 3px 0 0 var(--warn)}
+  #bench .prow.sel{background:var(--home-soft);box-shadow:inset 3px 0 0 var(--home)}
+  .pending{margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#fff7e6;border:1px solid #ffe2a8;font-size:12px;font-weight:700;color:#8a5a00}
+
+  /* SCOREKEEPER + TIMEKEEPER consoles */
+  .conswitch{display:inline-flex;gap:5px;background:#1f2730;padding:4px;border-radius:999px}
+  .cbadge{border:0;background:transparent;color:#9fb0bf;font:inherit;font-weight:800;font-size:11px;letter-spacing:.02em;padding:5px 11px;border-radius:999px;cursor:pointer}
+  .cbadge.on{background:#fff;color:#11181c}
+  .onecrew{background:#eef4ff;color:#274690;font-size:11.5px;font-weight:600;padding:7px 16px;border-bottom:1px solid #dbe6fb}
+  .teamtoggle{display:flex;margin:12px 16px 4px;border-bottom:2px solid var(--line)}
+  .tt{flex:1;border:0;background:transparent;color:var(--muted);padding:10px 4px;font:inherit;font-weight:800;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+  .tt.on{color:var(--c);border-bottom-color:var(--c)}
+  .tt b{font-variant-numeric:tabular-nums;margin-left:4px}
+  .benchhd{font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.05em;padding:9px 0 2px;border-top:1px dashed var(--line);margin-top:4px}
+  .prow.psel{background:#eaf1ff;box-shadow:inset 3px 0 0 var(--accent)}
+  .prow.subin{background:var(--home-soft);box-shadow:inset 3px 0 0 var(--home)}
+  .reqcard{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 16px 0;padding:10px 12px;border:1px solid #cfe0ff;background:#f3f8ff;border-radius:12px;font-size:12px;font-weight:700}
+  .reqcard .rqload{border:0;background:var(--accent);color:#fff;border-radius:9px;padding:7px 12px;font:inherit;font-weight:800;cursor:pointer;white-space:nowrap}
+  .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 16px}
+  .pb{border:0;border-radius:12px;padding:15px 0;font:inherit;font-weight:800;font-size:16px;cursor:pointer;background:var(--ink);color:#fff}
+  .pb.foul{background:var(--warn)}
+  .pb:disabled{opacity:.35;cursor:default}
+  .subbtns{display:flex;gap:8px;margin-top:10px}
+  .subbtns .go{margin-top:0;width:auto;flex:1}
+  .subbtns .reset{flex:0 0 auto;background:#fff;color:var(--ink);border:1.5px solid var(--line);padding:11px 18px}
+
+  .clockbox{margin:14px 16px 8px;padding:14px;border-radius:16px;text-align:center;background:#0a0f14;color:#fff}
+  .clockbox .big{font-size:54px;font-weight:900;font-variant-numeric:tabular-nums;color:#ffd24a;letter-spacing:1px;line-height:1}
+  .clockbox .per{font-size:12px;color:#9fb0bf;font-weight:700;margin-top:5px;letter-spacing:.06em}
+  .lenrow{display:flex;align-items:center;gap:8px;margin:8px 16px 0}
+  .lenrow .lenlbl{font-size:12px;font-weight:800;color:var(--muted);flex:1}
+  .lenbtn{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;cursor:pointer}
+  .lenbtn:disabled{opacity:.4;cursor:default}
+  .lenval{font-weight:800;font-variant-numeric:tabular-nums;min-width:58px;text-align:center}
+  .lenhint{font-size:11px;color:var(--muted);font-weight:700;margin:4px 16px 0}
+  .ctrlrow{display:flex;gap:8px;margin:8px 16px}
+  .ctrlrow button{flex:1;border:0;border-radius:11px;padding:12px 0;font:inherit;font-weight:800;cursor:pointer;background:var(--ink);color:#fff}
+  .ctrlrow button.sec{background:#eef1f5;color:var(--ink)}
+  .ctrlrow button.startstop.run{background:var(--warn)}
+  .blk{margin:12px 16px}
+  .blk h3{margin:0 0 7px;font-size:12px;letter-spacing:.04em;color:var(--muted)}
+  .poss-toggle{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+  .poss-toggle button{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:11px;font:inherit;font-weight:800;cursor:pointer;color:var(--muted)}
+  .poss-toggle .pH.on{background:var(--home);border-color:var(--home);color:#fff}
+  .poss-toggle .pA.on{background:var(--away);border-color:var(--away);color:#fff}
+  .poss-toggle .arrow{font-size:18px;color:var(--muted)}
+  .to-team{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)}
+  .to-team:first-of-type{border-top:0}
+  .to-team .nm{font-weight:800}
+  .to-team .dots{color:var(--muted);font-weight:700;font-size:12px;margin-left:6px}
+  .to-team .cd{font-variant-numeric:tabular-nums;font-weight:800;color:var(--warn);margin-left:6px}
+  .grant{border:0;background:var(--home);color:#fff;border-radius:10px;padding:9px 14px;font:inherit;font-weight:800;cursor:pointer}
+  .grant:disabled{opacity:.4;cursor:default}
+  .ptime{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .ptime button{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:11px 6px;font:inherit;font-weight:800;cursor:pointer;color:var(--muted);font-size:13px}
+  .ptime button.on{color:#fff;background:var(--ink);border-color:var(--ink)}
+  .pbars{display:flex;height:9px;border-radius:99px;overflow:hidden;margin-top:9px;background:#eef1f5}
+  .pbars i{display:block;height:100%}
+  .pbars .bH{background:var(--home)} .pbars .bA{background:var(--away)}
+  .pcap{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);margin-top:4px}
+
+  /* NEW GAME form */
+  .ng-head{padding:16px 16px 4px}
+  .ng-head h2{margin:0;font-size:20px}
+  .ng-head p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.35}
+  .ng-field{margin:11px 16px;display:flex;flex-direction:column;gap:4px}
+  .ng-field label{font-size:12px;font-weight:800;color:var(--ink)}
+  .ng-field .opt{font-weight:600;color:var(--muted);font-size:11px;margin-left:4px}
+  .ng-field input{font:inherit;font-weight:700;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;color:var(--ink)}
+  .ng-field input::placeholder{color:#aab2bd;font-weight:600}
+  .ng-teamrow{display:flex;align-items:center;gap:8px}
+  .ng-teamrow input[type=text]{flex:1;min-width:0}
+  .ng-field .ng-color{width:44px;height:44px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;flex:none}
+  .ng-hint{font-size:11px;color:var(--muted);font-weight:600}
+  .ng-row{display:flex;gap:10px;margin:0}
+  .ng-row .ng-field{flex:1}
+  .ng-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .ng-chip{border:1.5px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:7px 12px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+  .ng-chip.on{border-color:var(--accent);color:#fff;background:var(--accent)}
+  .ng-create{width:calc(100% - 32px);margin:14px 16px 4px;border:0;background:var(--home);color:#fff;border-radius:12px;padding:13px;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
+
+  /* FINAL — score-progress chart, box score, badges */
+  .growth{width:100%;height:auto;display:block;margin-top:4px}
+  .growth .gl{stroke:var(--line);stroke-width:1}
+  .growth .ph{stroke:var(--home);stroke-width:2.5;fill:none;stroke-linejoin:round}
+  .growth .pa{stroke:var(--away);stroke-width:2.5;fill:none;stroke-linejoin:round}
+  .growth text{font-size:9px;fill:var(--muted);font-weight:700}
+  .legend{display:flex;gap:14px;justify-content:center;font-size:11px;font-weight:700;margin-top:2px}
+  .legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .legend .lg-h{color:var(--home)} .legend .lg-h::before{background:var(--home)}
+  .legend .lg-a{color:var(--away)} .legend .lg-a::before{background:var(--away)}
+  .bs-team{display:flex;align-items:center;gap:7px;font-weight:800;font-size:13px;margin-top:10px}
+  .bs-dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .bs-dot.home{background:var(--home)} .bs-dot.away{background:var(--away)}
+  .bs-sub{font-weight:600;color:var(--muted);font-size:12px}
+  .boxscore{margin:5px 0 2px}
+  .bs-row{display:grid;grid-template-columns:22px 1fr 32px 30px 34px;gap:8px;align-items:center;font-size:13px;padding:6px 0;border-top:1px solid var(--line)}
+  .bs-row.hd{font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.04em;border-top:0;padding-bottom:2px}
+  .bs-row .j{font-weight:800;color:var(--muted);text-align:center}
+  .bs-row .nm{font-weight:700}
+  .bs-row .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .bs-row .pts{font-weight:800}
+  .bs-row.wdot{grid-template-columns:14px 22px 1fr 32px 32px 34px}
+  .bs-tabs{display:flex;gap:5px;background:#eef1f5;padding:4px;border-radius:999px;margin:6px 0}
+  .bs-tab{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:12px;padding:6px 8px;border-radius:999px;cursor:pointer}
+  .bs-tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .bs-row.clk{cursor:pointer}
+  .bs-row.clk .nm{border-bottom:1.5px dotted #b9c2cd}
+  .badge-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+  .bdg{font-size:12px;font-weight:700;background:#f4f6f9;border:1px solid var(--line);border-radius:999px;padding:5px 10px}
+
+  /* TEAM PROFILE (where Follow lives) */
+  .tp-hero{display:flex;align-items:center;gap:12px;padding:16px 16px 8px}
+  .tp-badge{width:54px;height:54px;border-radius:12px;background:var(--home);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;flex:none}
+  .tp-badge.away{background:var(--away)}
+  .tp-id h2{margin:0;font-size:19px}
+  .tp-id p{margin:3px 0 0;font-size:12px;color:var(--muted);font-weight:600}
+  .tp-followbar{display:flex;align-items:center;gap:12px;margin:4px 16px}
+  .tp-follow{border:0;background:var(--accent);color:#fff;border-radius:11px;padding:11px 18px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+  .tp-follow.on{background:#eef1f5;color:var(--ink)}
+  .tp-followers{font-size:13px;color:var(--muted);font-weight:600}
+  .tp-followers b{color:var(--ink);font-weight:800}
+  .tp-note{margin:6px 16px;font-size:11px;color:var(--muted);font-weight:600;line-height:1.35}
+  .tg-result{margin:6px 16px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+  .tg-result .rh{color:var(--home)} .tg-result .ra{color:var(--away)}
+  .tg-win{font-size:10px;font-weight:800;background:#19c37d;color:#053;border-radius:999px;padding:2px 8px}
+  .tg-win.lost{background:#fbe3e3;color:#a12}
+  .tg-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tg-meta{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--ink)}
+
+  /* PLAYER-GAME page */
+  .pg-hero{display:flex;align-items:center;gap:12px;padding:16px 16px 8px}
+  .pg-badge{width:54px;height:54px;border-radius:12px;background:var(--home);color:#fff;display:grid;place-items:center;font-weight:800;font-size:22px;flex:none}
+  .pg-badge.away{background:var(--away)}
+  .pg-id h2{margin:0;font-size:19px}
+  .pg-id p{margin:3px 0 0;font-size:12px;color:var(--muted);font-weight:600}
+  .pg-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .pg-tile{background:#f4f6f9;border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
+  .pg-tile b{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+  .pg-tile span{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:.04em}
+
+  /* ASSIGN CREW (creator role-invites) */
+  .cr-head{padding:16px 16px 4px}
+  .cr-head h2{margin:0;font-size:20px}
+  .cr-head p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+  .cr-note{margin:8px 16px;font-size:12px;color:var(--muted);line-height:1.35}
+  .cr-list{margin:6px 16px}
+  .cr-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .cr-row:first-child{border-top:0}
+  .cr-role b{font-size:14px;font-weight:800;display:block}
+  .cr-role span{font-size:11px;color:var(--muted);font-weight:600}
+  .cr-who{display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .cr-st{font-size:12px;font-weight:800}
+  .cr-st.ok{color:var(--home)}
+  .cr-st.pend{color:#b07a00}
+  .cr-st.none{color:var(--muted);font-weight:700}
+  .cr-st.pick{color:#b8520a}
+  .cr-act{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:6px 11px;font:inherit;font-weight:800;font-size:12px;cursor:pointer}
+  .cr-act.assign{border-color:var(--accent);color:#fff;background:var(--accent)}
+  .cr-cover{margin:10px 16px 2px;font-size:12px;color:var(--muted);font-weight:600}
+  .cov-ok{color:var(--home)} .cov-pend{color:#b07a00}
+  .cr-invite{width:calc(100% - 32px);margin:10px 16px 4px;border:0;background:var(--home);color:#fff;border-radius:12px;padding:12px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+  .cr-invite-row{display:flex;align-items:center;gap:12px;margin:10px 16px 4px}
+  .cr-invite-row .cr-invite{width:auto;flex:1;margin:0}
+  .cr-qrwrap{text-align:center;flex:none}
+  .cr-qr{width:64px;height:64px;border-radius:10px;background:conic-gradient(#11181c 25%,#fff 0 50%,#11181c 0 75%,#fff 0);background-size:14px 14px;border:4px solid #11181c}
+  .cr-qrcap{font-size:9px;color:var(--muted);font-weight:700;margin-top:2px}
+
+  .hide{display:none}
+</style>
+</head>
+<body>
+  <h1>GameBoard.live — game screens (prototype)</h1>
+  <div class="tabs">
+    <button data-p="newgame">New game</button>
+    <button data-p="creator">Assign crew</button>
+    <button data-p="pre">Pre-game</button>
+    <button data-p="live" class="on">Live-spectator</button>
+    <button data-p="board">Game board</button>
+    <button data-p="coach">Coach</button>
+    <button data-p="scorer">Scorekeeper</button>
+    <button data-p="timer">Timekeeper</button>
+    <button data-p="team">Team</button>
+    <button data-p="player">Player</button>
+    <button data-p="final">Final</button>
+  </div>
+  <div class="a11y">Player &amp; team names are <a class="tap" href="#">tappable</a> → their profile pages (where Follow lives). No follow buttons on the live screen.</div>
+
+  <!-- phone-framed screens -->
+  <div class="phone" id="phonewrap">
+    <!-- ===== NEW GAME (creation form — illustrative, non-functional) ===== -->
+    <div class="screen hide" id="newgame">
+      <div class="ng-head">
+        <h2>🏀 New game</h2>
+        <p>Two team names and a time is all you need — everything else is optional.</p>
+      </div>
+      <div class="ng-field">
+        <label>Home team</label>
+        <div class="ng-teamrow">
+          <input type="color" class="ng-color" value="#1f9d55" title="team colour" aria-label="Home team colour">
+          <input type="text" value="Limerick Celtics">
+        </div>
+        <span class="ng-hint">pick the team colour · an existing sneat.team team, or a typed (ad-hoc) name</span>
+      </div>
+      <div class="ng-field">
+        <label>Away team</label>
+        <div class="ng-teamrow">
+          <input type="color" class="ng-color" value="#2563eb" title="team colour" aria-label="Away team colour">
+          <input type="text" placeholder="e.g. Ennis Tigers">
+        </div>
+        <span class="ng-hint">ad-hoc is fine — the other side needs no account</span>
+      </div>
+      <div class="ng-row">
+        <div class="ng-field"><label>Date</label><input type="text" value="Today"></div>
+        <div class="ng-field"><label>Time</label><input type="text" value="18:30"></div>
+      </div>
+      <div class="ng-field"><label>Venue <span class="opt">optional</span></label><input type="text" placeholder="gym or address"></div>
+      <div class="ng-field"><label>Competition <span class="opt">optional</span></label><input type="text" placeholder="e.g. U14 Girls · Round 5"></div>
+      <div class="ng-field">
+        <label>Your role <span class="opt">self-declared, for transparency</span></label>
+        <div class="ng-chips">
+          <button class="ng-chip on">Coach</button>
+          <button class="ng-chip">Player</button>
+          <button class="ng-chip">Score-keeper</button>
+          <button class="ng-chip">Timekeeper</button>
+          <button class="ng-chip">Judge</button>
+          <button class="ng-chip">Spectator</button>
+        </div>
+      </div>
+      <button class="ng-create">Create game ›</button>
+      <div class="foot">Saved as <b>scheduled</b> · instantly shareable: link · QR · game #</div>
+    </div>
+
+    <!-- ===== ASSIGN CREW (creator role-invites — illustrative, non-functional) ===== -->
+    <div class="screen hide" id="creator">
+      <div class="cr-head">
+        <h2>🧑‍🤝‍🧑 Assign crew</h2>
+        <p>Game #4827 · Celtics vs Huskies · Today 18:30</p>
+      </div>
+      <div class="cr-note">Invite one or more people to a role — they get the role &amp; permissions attached and accept via rsvp.express. If more than one accepts, you choose who holds it.</div>
+      <div class="cr-list">
+        <div class="cr-row">
+          <div class="cr-role"><b>Score-sheet keeper</b><span>records baskets, fouls, subs</span></div>
+          <div class="cr-who"><span class="cr-st ok">✅ Mary R.</span></div>
+        </div>
+        <div class="cr-row">
+          <div class="cr-role"><b>Clock / board runner</b><span>invited Tom K. · Jane D.</span></div>
+          <div class="cr-who"><span class="cr-st pick">⚠️ 2 accepted</span><button class="cr-act assign">Choose ›</button></div>
+        </div>
+        <div class="cr-row">
+          <div class="cr-role"><b>Head coach</b><span>requests subs / timeouts</span></div>
+          <div class="cr-who"><span class="cr-st ok">✅ You</span></div>
+        </div>
+        <div class="cr-row">
+          <div class="cr-role"><b>Judge / referee</b><span>invited 3 · awaiting reply</span></div>
+          <div class="cr-who"><span class="cr-st pend">⏳ 0 of 3</span><button class="cr-act">Remind</button></div>
+        </div>
+        <div class="cr-row">
+          <div class="cr-role"><b>Assistant coach</b><span>optional</span></div>
+          <div class="cr-who"><span class="cr-st none">Unfilled</span><button class="cr-act assign">Assign ›</button></div>
+        </div>
+      </div>
+      <div class="cr-cover">Essential roles: <b class="cov-ok">score-sheet keeper ✓</b> · <b class="cov-pend">clock/board ⚠️ choose</b></div>
+      <div class="cr-invite-row">
+        <div class="cr-qrwrap"><div class="cr-qr" title="scan to join the crew"></div><div class="cr-qrcap">scan to join</div></div>
+        <button class="cr-invite">+ Invite someone to a role</button>
+      </div>
+      <div class="foot">You assign &amp; invite · <b>roles</b> grants on accept · permissions follow the role</div>
+    </div>
+
+    <!-- ===== LIVE ===== -->
+    <div class="screen" id="live">
+      <div class="status live">
+        <span class="left"><span class="dot"></span> LIVE · Q3 05:42</span>
+        <span class="fresh">⟳ updated 2s ago</span>
+      </div>
+      <div class="board">
+        <div class="team home">
+          <div class="badge">LC</div>
+          <div class="tname"><a class="tap" href="#" data-team-go="home">Limerick<br>Celtics</a></div>
+        </div>
+        <div class="score home" style="grid-column:1;justify-self:end">58</div>
+        <div class="vs">–</div>
+        <div class="score away" style="grid-column:3;justify-self:start">52</div>
+        <div class="team away" style="grid-column:3;grid-row:1;align-items:flex-end;text-align:right">
+          <div class="badge">LH</div>
+          <div class="tname"><a class="tap" href="#">Limerick<br>Huskies</a></div>
+        </div>
+      </div>
+      <div class="meta">
+        <span>Team fouls 5 · in penalty<br>Timeouts ●●○</span>
+        <span class="poss"><b>◀ poss</b></span>
+        <span class="away">Team fouls 3 <span class="bonus">BONUS</span><br>Timeouts ●○○</span>
+      </div>
+      <div class="bonusnote">Celtics reached the team-foul limit (5) → <b>Huskies are in the bonus</b> and shoot free throws on the next Celtics foul.</div>
+      <div class="periods">
+        <div class="col"><span class="h">Q1</span><span class="v">14·12</span></div>
+        <div class="col"><span class="h">Q2</span><span class="v">19·18</span></div>
+        <div class="col"><span class="h">Q3</span><span class="v">25·22</span></div>
+      </div>
+
+      <!-- LAST PLAY card with endorse action -->
+      <div class="lastcard" id="lastcard">
+        <div class="hd">🏀 LAST SCORE</div>
+        <div class="play"><b style="color:var(--home)">Celtics</b> · <a class="tap" href="#"><span class="pts">#7 Sarah +2</span></a> · assist <a class="tap" href="#">#4 Méabh</a></div>
+        <div class="endorse-row">
+          <button class="endorse" id="endorse"><span class="e">🔥</span> Endorse</button>
+          <span class="tally" id="tally">🔥 128</span>
+          <span class="left-note" id="left">7 left this game<br>max 7 / quarter</span>
+        </div>
+      </div>
+
+      <div class="venue">
+        <span>📍 You're at the game</span>
+        <button class="pillbtn">I'm here</button>
+      </div>
+      <div class="share-block">
+        <div class="qr-lg" title="scan to open the game"></div>
+        <button class="share-btn">🔗 Share game</button>
+      </div>
+      <div class="foot">Game #4827 · GameBoard.live · no account needed · ⚙ notify me</div>
+    </div>
+
+    <!-- ===== TEAM PROFILE (where Follow lives — linked from the live screen) ===== -->
+    <div class="screen hide" id="team">
+      <div class="tp-hero">
+        <div class="tp-badge" id="tgBadge">LC</div>
+        <div class="tp-id"><h2 id="tgName">Limerick Celtics</h2><p id="tgSub">U14 Girls · vs Limerick Huskies</p></div>
+      </div>
+      <div class="tp-followbar">
+        <button class="tp-follow" id="tpFollow">➕ Follow</button>
+        <div class="tp-followers"><b id="tpFollowers">128</b> followers</div>
+      </div>
+      <div class="tg-result" id="tgResult">Final · <b class="rh">61</b> – <b class="ra">57</b> <span class="tg-win">WON</span></div>
+
+      <div class="sec">
+        <h3>📊 Team · this game</h3>
+        <div class="tg-tiles">
+          <div class="pg-tile"><b id="tgPts">61</b><span>POINTS</span></div>
+          <div class="pg-tile"><b id="tgAst">20</b><span>ASSISTS</span></div>
+          <div class="pg-tile"><b id="tgPf">12</b><span>FOULS</span></div>
+        </div>
+      </div>
+      <div class="sec">
+        <h3>📅 Game</h3>
+        <div class="tg-meta">
+          <div>📆 Sat 14 Jun · 18:30</div>
+          <div>📍 Parnell Sports Complex — Gym A, Limerick</div>
+          <div>🆚 <a class="tap" id="tgOpp" data-team-go="away">Limerick Huskies</a></div>
+        </div>
+      </div>
+      <div class="sec">
+        <h3>👥 Players <span class="bs-sub">· tap a player for their game</span></h3>
+        <div class="boxscore" id="tgPlayers"></div>
+      </div>
+      <div class="share-block">
+        <div class="qr-lg" title="scan to open the team"></div>
+        <button class="share-btn">🔗 Share team</button>
+      </div>
+      <div class="foot">no account needed to view · sign in to follow</div>
+    </div>
+
+    <!-- ===== PLAYER-GAME (per-player page — linked from the final box score) ===== -->
+    <div class="screen hide" id="player">
+      <div class="pg-hero">
+        <div class="pg-badge" id="pgJersey">7</div>
+        <div class="pg-id"><h2 id="pgName">Sarah</h2><p id="pgTeam">Limerick Celtics · U14 Girls</p></div>
+      </div>
+      <div class="tp-followbar">
+        <button class="tp-follow" id="pgFollow">➕ Follow</button>
+        <div class="tp-followers"><b id="pgFollowers">42</b> followers</div>
+      </div>
+      <div class="tg-result" id="pgGame">Final · <b class="rh">Celtics 61</b> – <b class="ra">Huskies 57</b> · Sat 14 Jun</div>
+      <div class="tp-note">Follow to get this player's future games — a one-tap sign-in is required to follow.</div>
+      <div class="sec">
+        <h3>📊 This game</h3>
+        <div class="pg-tiles">
+          <div class="pg-tile"><b id="pgPts">18</b><span>PTS</span></div>
+          <div class="pg-tile"><b id="pgAst">5</b><span>AST</span></div>
+          <div class="pg-tile"><b id="pgPf">4</b><span>PF</span></div>
+          <div class="pg-tile"><b id="pgMin">28</b><span>MIN</span></div>
+        </div>
+      </div>
+      <div class="sec">
+        <h3>🏅 Badges this game</h3>
+        <div class="badge-wrap" id="pgBadges"><span class="bdg">🔥 On Fire</span><span class="bdg">🎯 Playmaker</span></div>
+      </div>
+      <div class="share-block">
+        <div class="qr-lg" title="scan to open this player"></div>
+        <button class="share-btn">🔗 Share player</button>
+      </div>
+      <div class="foot"><a class="tap" data-goto="final" href="#">‹ Back to final</a></div>
+    </div>
+
+    <!-- ===== PRE-GAME ===== -->
+    <div class="screen hide" id="pre">
+      <div class="status"><span class="chip sch">SCHEDULED</span><span class="fresh">Today 18:30 · Gym A</span></div>
+      <div class="board" style="padding-bottom:2px">
+        <div class="team home"><div class="badge">LC</div><div class="tname"><a class="tap" href="#">Limerick<br>Celtics</a></div><button class="rsvp">RSVP ›</button></div>
+        <div class="vs" style="grid-column:2">vs</div>
+        <div class="team away" style="grid-column:3;align-items:flex-end;text-align:right"><div class="badge">LH</div><div class="tname"><a class="tap" href="#">Limerick<br>Huskies</a></div><button class="rsvp">RSVP ›</button></div>
+      </div>
+      <div class="note" style="margin-bottom:4px">U14 Girls · Round 5 · <span style="color:var(--accent)">RSVP attendance &amp; role</span></div>
+      <a class="venue-card" href="#" title="Open in Maps">
+        <span class="pin">📍</span>
+        <span class="vtext"><b>Parnell Sports Complex — Gym A</b><br>Ennis Rd, Limerick</span>
+        <span class="dir">Directions ›</span>
+      </a>
+      <div class="share-block">
+        <div class="qr-lg" title="scan to open the game"></div>
+        <button class="share-btn">🔗 Share game</button>
+      </div>
+      <div class="rsvp-card">
+        <h3>📋 Who's coming <span class="note" style="font-weight:600;margin:0">· via rsvp.express</span></h3>
+        <div class="rsvp-row"><span class="rsvp-grp">🏀 Celtics players</span><span class="rsvp-tally"><b class="rgo">9</b> going · <b class="rmb">2</b> maybe</span></div>
+        <div class="rsvp-row"><span class="rsvp-grp">🏀 Huskies players</span><span class="rsvp-tally"><b class="rgo">8</b> going · <b class="rmb">3</b> maybe</span></div>
+        <div class="rsvp-row"><span class="rsvp-grp">👥 Spectators</span><span class="rsvp-tally"><b class="rgo" id="specGo">24</b> going · <b class="rmb">11</b> maybe</span></div>
+        <button class="rsvp-cta" id="rsvpBtn">RSVP — I'm going ›</button>
+      </div>
+      <div class="predict-card">
+        <h3>🔮 Predict the final score</h3>
+        <div class="predict">
+          <div class="f home"><label>Celtics</label><input value="54"></div>
+          <div class="f away"><label>Huskies</label><input value="49"></div>
+        </div>
+        <button class="lock">Lock in my prediction</button>
+        <div class="note">locks at tip-off · this is not betting</div>
+        <div class="consensus"><span>🏅 Top tipster: <b>M. Ryan</b></span><a class="link" href="#">leaderboard ›</a></div>
+      </div>
+      <div class="foot">no account needed</div>
+    </div>
+
+    <!-- ===== FINAL ===== -->
+    <div class="screen hide" id="final">
+      <div class="finalhero">
+        <div class="team home" style="align-items:flex-start">
+          <div class="tname"><a class="tap" href="#" style="color:#fff" data-team-go="home">Limerick Celtics</a></div><div class="sc">61</div><span class="wintag">WON</span>
+        </div>
+        <div class="vs" style="color:#9aa6b2">–</div>
+        <div class="team away" style="align-items:flex-end;text-align:right">
+          <div class="tname"><a class="tap" href="#" style="color:#fff" data-team-go="away">Limerick Huskies</a></div><div class="sc">57</div>
+        </div>
+      </div>
+      <div class="cta vote">
+        <h3>🏆 Vote: Celtics Player of the Game</h3>
+        <p>You followed live, so you can vote.</p>
+        <button>Open ballot ▸</button>
+      </div>
+
+      <div class="sec">
+        <h3>📈 Score progress</h3>
+        <svg class="growth" viewBox="0 0 300 122" aria-hidden="true">
+          <line class="gl" x1="10" y1="110" x2="290" y2="110"></line>
+          <polyline class="pa" points="10,110 80,92 150,68 220,44 290,24.5"></polyline>
+          <polyline class="ph" points="10,110 80,89 150,63.5 220,39.5 290,18.5"></polyline>
+          <text x="80" y="120" text-anchor="middle">Q1</text>
+          <text x="150" y="120" text-anchor="middle">Q2</text>
+          <text x="220" y="120" text-anchor="middle">Q3</text>
+          <text x="288" y="120" text-anchor="end">Q4</text>
+        </svg>
+        <div class="legend"><span class="lg-h">Celtics 61</span><span class="lg-a">Huskies 57</span></div>
+      </div>
+
+      <div class="sec">
+        <h3>📊 Box score <span class="bs-sub">· by points · assists · minutes</span></h3>
+        <div class="bs-tabs">
+          <button class="bs-tab" data-bs="home">Celtics</button>
+          <button class="bs-tab on" data-bs="all">All</button>
+          <button class="bs-tab" data-bs="away">Huskies</button>
+        </div>
+        <div class="boxscore" id="bsBody"></div>
+      </div>
+
+      <div class="sec">
+        <h3>🏅 Badges earned</h3>
+        <div class="badge-wrap">
+          <span class="bdg">🔥 On Fire · Sarah</span>
+          <span class="bdg">🪣 20+ Club · Sarah</span>
+          <span class="bdg">🎯 Sharpshooter · Katie</span>
+          <span class="bdg">🛡️ Lockdown · Niamh</span>
+          <span class="bdg">🔮 Best Tipster · M. Ryan</span>
+        </div>
+      </div>
+
+      <div class="cta recap">
+        <h3>📋 Full recap</h3>
+        <p>Box score · MVP · 🔥 On fire! · badges · best tipster</p>
+        <a href="#">See recap ›</a>
+      </div>
+      <div class="foot">share this recap →</div>
+    </div>
+
+    <!-- ===== COACH CONSOLE (one-person crew: coach + score sheet + clock) ===== -->
+    <div class="screen hide" id="coach">
+      <div class="rolebar">
+        <span class="conswitch">
+          <button class="cbadge on" data-go="coach">Coach</button>
+          <button class="cbadge" data-go="timer">Clock / Board</button>
+        </span>
+        <span class="livemini"><span class="dot"></span> LIVE · Q3</span>
+      </div>
+      <div class="onecrew">Coach · Limerick Celtics — you also run the <b>clock</b>, so timeouts grant directly; substitutions still go to the <b>scorekeeper</b>.</div>
+      <div class="miniscore"><span class="h">Celtics 58</span><span class="cl">– Q3 · 05:42 –</span><span class="a">52 Huskies</span></div>
+
+      <!-- timeout request -->
+      <div class="req">
+        <h3>⏱️ Timeout <span class="to">→ you run the clock · granted directly</span></h3>
+        <div class="toctrl">
+          <span class="dots" id="toDots">Timeouts left ●●○</span>
+          <button class="tobtn" id="toBtn">Grant timeout</button>
+        </div>
+        <div class="pending hide" id="toPending"></div>
+      </div>
+
+      <!-- on-court + bench (rendered from the GAME model; rows are selectable) -->
+      <div class="roster" id="oncourt"></div>
+      <div class="roster" id="bench"></div>
+
+      <!-- substitution request — select players in the lists above, then Request -->
+      <div class="req">
+        <h3>🔁 Substitution <span class="to">→ recorded by scorekeeper</span></h3>
+        <div class="note" style="text-align:left;margin:0">Tap players above to swap — who comes <b style="color:var(--warn)">off (court)</b> ⇄ <b style="color:var(--home)">on (bench)</b>; counts must match.</div>
+        <button class="go" id="subBtn" disabled>Request</button>
+        <div class="subcount" id="subCount">tap players to swap (equal counts)</div>
+        <div class="pending hide" id="subPending"></div>
+      </div>
+
+      <div class="foot">Coach · you <b>request</b> substitutions (the scorekeeper records) · you also run the <b>clock</b>, so timeouts grant directly</div>
+    </div>
+
+    <!-- ===== SCOREKEEPER CONSOLE ===== -->
+    <div class="screen hide" id="scorer">
+      <div class="rolebar">
+        <span class="role"><span class="whistle">SCORE</span> Score sheet</span>
+        <span class="livemini"><span class="dot"></span> LIVE · Q3 · 05:42</span>
+      </div>
+
+      <!-- which team am I recording for (tab shows team + live score) -->
+      <div class="teamtoggle">
+        <button class="tt on" data-team="home" style="--c:var(--home)">Celtics <b id="skScoreH">58</b></button>
+        <button class="tt" data-team="away" style="--c:var(--away)">Huskies <b id="skScoreA">52</b></button>
+      </div>
+
+      <!-- active team's on-court + bench (rendered from the GAME model) -->
+      <div class="roster" id="skHome"></div>
+      <div class="roster hide" id="skAway"></div>
+
+      <!-- incoming coach substitution request (populated live from the Coach screen) -->
+      <div class="reqcard" id="skReq">
+        <span class="rq">No coach substitution request</span>
+        <button class="rqload hide" id="skReqLoad">Load</button>
+      </div>
+
+      <!-- point pad attributes a basket / foul to the one selected on-court player -->
+      <div class="pad">
+        <button class="pb" data-pts="1">FT +1</button>
+        <button class="pb" data-pts="2">+2</button>
+        <button class="pb" data-pts="3">+3</button>
+        <button class="pb foul" data-foul="1">Foul</button>
+      </div>
+
+      <!-- substitution: tap players off (court) + on (bench), equal counts, then confirm -->
+      <div class="subbar">
+        <div class="subbtns">
+          <button class="go" id="skSubBtn" disabled>✔ Confirm substitution</button>
+          <button class="go reset" id="skResetBtn">Reset</button>
+        </div>
+        <div class="subcount" id="skSubCount">tap players to swap (equal counts) — or load a coach request</div>
+      </div>
+      <div class="pending hide" id="skMsg"></div>
+      <div class="foot">Authoritative · appends <b>score / foul / substitution</b> to the event-timeline · confirms coach requests</div>
+    </div>
+
+    <!-- ===== TIMEKEEPER CONSOLE ===== -->
+    <div class="screen hide" id="timer">
+      <div class="rolebar">
+        <span class="conswitch">
+          <button class="cbadge" data-go="coach">Coach</button>
+          <button class="cbadge on" data-go="timer">Clock / Board</button>
+        </span>
+        <span class="livemini"><span class="dot"></span> LIVE · Q3</span>
+      </div>
+      <div class="clockbox">
+        <div class="big" id="tkClock">10:00</div>
+        <div class="per" id="tkPer">QUARTER 3</div>
+      </div>
+      <div class="lenrow">
+        <span class="lenlbl">Quarter length</span>
+        <button class="lenbtn" id="tkLenDown">−1 min</button>
+        <span class="lenval" id="tkLenVal">10 min</span>
+        <button class="lenbtn" id="tkLenUp">+1 min</button>
+      </div>
+      <div class="lenhint" id="tkLenHint">set before the quarter starts</div>
+      <div class="ctrlrow">
+        <button class="startstop" id="tkSS">Start</button>
+        <button class="sec" id="tkMinus">−5s</button>
+        <button class="sec" id="tkPlus">+5s</button>
+        <button class="sec" id="tkAdv">Period ▸</button>
+      </div>
+
+      <div class="blk">
+        <h3>POSSESSION</h3>
+        <div class="poss-toggle">
+          <button class="pH on" id="tkPH">◀ Celtics</button>
+          <span class="arrow" id="tkArrow">◀</span>
+          <button class="pA" id="tkPA">Huskies ▶</button>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h3>TIMEOUTS</h3>
+        <div class="to-team"><span class="nm">Celtics <span class="dots" id="toH">●●○</span><span class="cd hide" id="cdH"></span></span><button class="grant" data-t="H">Timeout</button></div>
+        <div class="to-team"><span class="nm">Huskies <span class="dots" id="toA">●○○</span><span class="cd hide" id="cdA"></span></span><button class="grant" data-t="A">Timeout</button></div>
+      </div>
+
+      <div class="blk">
+        <h3>BALL-POSSESSION TIME <span class="to" style="font-weight:600">· optional, feeds recap chart</span></h3>
+        <div class="ptime">
+          <button class="ptH" data-pt="H">Celtics</button>
+          <button class="ptD on" data-pt="D">dead-ball</button>
+          <button class="ptA" data-pt="A">Huskies</button>
+        </div>
+        <div class="pbars"><i class="bH" id="barH" style="width:54%"></i><i class="bA" id="barA" style="width:46%"></i></div>
+        <div class="pcap"><span id="capH">Celtics 54%</span><span id="capA">46% Huskies</span></div>
+        <div class="note" style="margin-top:6px">Start the clock, then pick the team holding the ball — share accrues live (dead-ball counts to neither).</div>
+      </div>
+
+      <div class="foot">Authoritative · single source of truth · appends <b>clock / period / possession / timeout</b> to the event-timeline</div>
+    </div>
+  </div>
+
+  <!-- ===== GAME BOARD (TV / projector) — sits outside the phone frame ===== -->
+  <div class="tv hide" id="board">
+    <div class="toprow">
+      <span>U14 Girls · Round 5</span>
+      <span class="livetag"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:#19c37d;display:inline-block"></span> LIVE · Q3</span>
+      <span class="clock">05:42</span>
+    </div>
+    <div class="tv-progress" title="time elapsed this quarter"><i></i></div>
+    <div class="scorewrap">
+      <div class="tm home">
+        <div class="nm">LIMERICK CELTICS <small>fouls 5 · penalty</small></div>
+        <div class="big">58</div>
+        <div class="sub">timeouts ●●○</div>
+      </div>
+      <div class="mid">
+        <div class="poss-ind">◀ possession</div>
+      </div>
+      <div class="tm away">
+        <div class="nm">LIMERICK HUSKIES <small>fouls 3 <span class="bonus2">BONUS</span></small></div>
+        <div class="big">52</div>
+        <div class="sub">timeouts ●○○</div>
+      </div>
+    </div>
+    <div class="ticker">
+      <span>LAST · <b style="color:#5fd39a">CELTICS</b> #7 Sarah +2 (assist #4 Méabh)</span>
+      <span style="display:flex;align-items:center;gap:10px"><span class="qrcap"><b style="color:#fff">Scan to play along</b><br>🔥 react · predict · vote MVP · live stats<br>Game <b style="color:#fff">#4827</b> · GameBoard.live</span><span class="qr"></span></span>
+    </div>
+  </div>
+  <div class="tvnote hide" id="tvnote">TV / projector — the <b>scoreboard big-screen mode</b>. The scorer/operator controls the game from a separate device; this display is read-only.</div>
+
+<script>
+  const tabs=[...document.querySelectorAll('.tabs button')];
+  const phone=document.getElementById('phonewrap');
+  const board=document.getElementById('board'), tvnote=document.getElementById('tvnote');
+  const inPhone={newgame:newgame,creator:creator,pre:pre,live:live,team:team,player:player,final:final,coach:coach,scorer:scorer,timer:timer};
+  tabs.forEach(b=>b.onclick=()=>{
+    tabs.forEach(x=>x.classList.toggle('on',x===b));
+    const p=b.dataset.p;
+    const isBoard=p==='board';
+    phone.classList.toggle('hide',isBoard);
+    board.classList.toggle('hide',!isBoard);
+    tvnote.classList.toggle('hide',!isBoard);
+    if(!isBoard) Object.entries(inPhone).forEach(([k,el])=>el.classList.toggle('hide',k!==p));
+  });
+
+  // header badge-tabs that switch between the two operator consoles
+  document.querySelectorAll('.cbadge').forEach(b=>b.onclick=()=>
+    document.querySelector('.tabs button[data-p="'+b.dataset.go+'"]').click());
+
+  // pre-game RSVP — toggle your own attendance, spectators-going count updates
+  (()=>{ const b=document.getElementById('rsvpBtn'), g=document.getElementById('specGo'); let mine=false;
+    b.onclick=()=>{ mine=!mine; g.textContent=24+(mine?1:0); b.textContent=mine?"You're going ✓":"RSVP — I'm going ›"; b.classList.toggle('on',mine); }; })();
+
+  // in-screen navigation links (e.g. a team name on the live screen → team profile)
+  document.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',e=>{
+    e.preventDefault(); document.querySelector('.tabs button[data-p="'+el.dataset.goto+'"]').click();
+  }));
+
+  // team profile — the follow atom (account-gated in reality; demo toggle)
+  (()=>{ const f=document.getElementById('tpFollow'), c=document.getElementById('tpFollowers'); let on=false;
+    f.onclick=()=>{ on=!on; c.textContent=128+(on?1:0); f.textContent=on?'✓ Following':'➕ Follow'; f.classList.toggle('on',on); }; })();
+
+  // FINAL box score — tabbed (Team A / All / Team B), sorted by points → assists → minutes
+  const FINAL={
+    home:{name:'Celtics',players:[
+      {num:7,name:'Sarah',pts:18,ast:5,pf:4,min:28},{num:4,name:'Méabh',pts:14,ast:7,pf:2,min:26},
+      {num:9,name:'Aoife',pts:11,ast:2,pf:3,min:24},{num:11,name:'Niamh',pts:9,ast:3,pf:1,min:25},
+      {num:5,name:'Ciara',pts:6,ast:1,pf:2,min:18},{num:12,name:'Róisín',pts:3,ast:2,pf:0,min:12}]},
+    away:{name:'Huskies',players:[
+      {num:6,name:'Katie',pts:16,ast:3,pf:3,min:27},{num:10,name:'Grace',pts:14,ast:5,pf:2,min:26},
+      {num:8,name:'Hannah',pts:12,ast:2,pf:4,min:25},{num:4,name:'Ava',pts:9,ast:4,pf:1,min:22},
+      {num:7,name:'Lily',pts:6,ast:2,pf:2,min:19},{num:9,name:'Zoe',pts:0,ast:1,pf:0,min:9}]}
+  };
+  const bsBody=document.getElementById('bsBody');
+  const bsSort=(a,b)=> b.pts-a.pts || b.ast-a.ast || b.min-a.min;   // points, then assists, then minutes
+  function bsRowsHTML(rows, all){
+    const wd=all?' wdot':'';
+    return '<div class="bs-row hd'+wd+'">'+(all?'<span></span>':'')+'<span></span><span>Player</span><span class="v">PTS</span><span class="v">AST</span><span class="v">MIN</span></div>'
+      + rows.map(p=>'<div class="bs-row clk'+wd+'" data-team="'+p.team+'" data-num="'+p.num+'">'+(all?'<span class="bs-dot '+p.team+'"></span>':'')
+        +'<span class="j">'+p.num+'</span><span class="nm">'+p.name+'</span>'
+        +'<span class="v pts">'+p.pts+'</span><span class="v">'+p.ast+'</span><span class="v">'+p.min+'</span></div>').join('');
+  }
+  function renderBox(which){
+    const all=which==='all';
+    const rows=(all?[...FINAL.home.players.map(p=>({...p,team:'home'})),...FINAL.away.players.map(p=>({...p,team:'away'}))]
+                   :FINAL[which].players.map(p=>({...p,team:which}))).sort(bsSort);
+    bsBody.innerHTML=bsRowsHTML(rows, all);
+  }
+  document.querySelectorAll('.bs-tab').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.bs-tab').forEach(x=>x.classList.toggle('on',x===b)); renderBox(b.dataset.bs);
+  });
+  renderBox('all');
+
+  // team-game page — filled per team, opened from any team name
+  const tsum=(arr,k)=>arr.reduce((a,p)=>a+p[k],0);
+  function fillTeam(team){
+    const t=FINAL[team], opp=team==='home'?'away':'home';
+    const my=tsum(t.players,'pts'), op=tsum(FINAL[opp].players,'pts'), won=my>op;
+    const J=document.getElementById('tgBadge'); J.textContent=team==='home'?'LC':'LH'; J.classList.toggle('away',team==='away');
+    document.getElementById('tgName').textContent='Limerick '+t.name;
+    document.getElementById('tgSub').textContent='U14 Girls · vs Limerick '+FINAL[opp].name;
+    const O=document.getElementById('tgOpp'); O.textContent='Limerick '+FINAL[opp].name; O.dataset.teamGo=opp;
+    document.getElementById('tgResult').innerHTML='Final · <b class="'+(team==='home'?'rh':'ra')+'">'+my+'</b> – <b class="'+(team==='home'?'ra':'rh')+'">'+op+'</b> <span class="tg-win'+(won?'':' lost')+'">'+(won?'WON':'LOST')+'</span>';
+    document.getElementById('tgPts').textContent=my;
+    document.getElementById('tgAst').textContent=tsum(t.players,'ast');
+    document.getElementById('tgPf').textContent=tsum(t.players,'pf');
+    document.getElementById('tgPlayers').innerHTML=bsRowsHTML(t.players.map(p=>({...p,team})).sort(bsSort), false);
+  }
+  function openTeam(team){ fillTeam(team); document.querySelector('.tabs button[data-p="team"]').click(); }
+  document.addEventListener('click', e=>{ const el=e.target.closest('[data-team-go]'); if(el){ e.preventDefault(); openTeam(el.dataset.teamGo); } });
+  fillTeam('home');
+
+  // tapping any box-score player row → the player-game page
+  document.addEventListener('click', e=>{ const r=e.target.closest('.bs-row.clk'); if(r) openPlayer(r.dataset.team,+r.dataset.num); });
+  function openPlayer(team,num){
+    const p=FINAL[team].players.find(x=>x.num===num); if(!p) return;
+    const J=document.getElementById('pgJersey'); J.textContent=p.num; J.classList.toggle('away',team==='away');
+    document.getElementById('pgName').textContent=p.name;
+    const oppT=team==='home'?'away':'home';
+    document.getElementById('pgTeam').innerHTML='<a class="tap" data-team-go="'+team+'">Limerick '+FINAL[team].name+'</a> · vs <a class="tap" data-team-go="'+oppT+'">Limerick '+FINAL[oppT].name+'</a>';
+    const hp=tsum(FINAL.home.players,'pts'), ap=tsum(FINAL.away.players,'pts');
+    document.getElementById('pgGame').innerHTML='Final · <b class="rh">'+FINAL.home.name+' '+hp+'</b> – <b class="ra">'+FINAL.away.name+' '+ap+'</b> · Sat 14 Jun';
+    document.getElementById('pgPts').textContent=p.pts;
+    document.getElementById('pgAst').textContent=p.ast;
+    document.getElementById('pgPf').textContent=p.pf;
+    document.getElementById('pgMin').textContent=p.min;
+    const bd=[]; if(p.pts>=20)bd.push('🪣 20+ Club'); if(p.pts>=15)bd.push('🔥 On Fire'); if(p.ast>=5)bd.push('🎯 Playmaker'); if(!bd.length)bd.push('—');
+    document.getElementById('pgBadges').innerHTML=bd.map(x=>'<span class="bdg">'+x+'</span>').join('');
+    document.querySelector('.tabs button[data-p="player"]').click();
+  }
+  (()=>{ const f=document.getElementById('pgFollow'), c=document.getElementById('pgFollowers'); let on=false;
+    f.onclick=()=>{ on=!on; c.textContent=42+(on?1:0); f.textContent=on?'✓ Following':'➕ Follow'; f.classList.toggle('on',on); }; })();
+
+  // endorse-the-last-play demo (scarce budget, attached to the play)
+  let left=7, tally=128;
+  const lc=document.getElementById('lastcard'), btn=document.getElementById('endorse'),
+        tEl=document.getElementById('tally'), lEl=document.getElementById('left');
+  btn.onclick=()=>{
+    if(left<=0) return;
+    left--; tally++;
+    const f=document.createElement('span'); f.className='fly'; f.textContent='🔥';
+    f.style.left=(18+Math.random()*64)+'%'; f.style.fontSize=(18+Math.random()*12)+'px';
+    lc.appendChild(f); setTimeout(()=>f.remove(),1700);
+    tEl.textContent='🔥 '+tally;
+    lEl.innerHTML = left+' left this game<br>max 7 / quarter';
+    if(left<=0){btn.disabled=true; lEl.innerHTML='quarter budget spent';}
+  };
+
+  // coach console — requests are proposals to the table crew (no authoritative append here)
+  const toBtn=document.getElementById('toBtn'), toPending=document.getElementById('toPending'), toDots=document.getElementById('toDots');
+  let toLeft=2;   // one-person crew grants directly (also runs the clock)
+  toBtn.onclick=()=>{
+    if(toLeft<=0) return;
+    toLeft--; toDots.textContent='Timeouts left '+'●'.repeat(toLeft)+'○'.repeat(3-toLeft);
+    toPending.classList.remove('hide');
+    toPending.textContent='✅ Timeout granted to Celtics — clock stopped · appended to the event-timeline.';
+    if(toLeft===0){ toBtn.disabled=true; toBtn.textContent='No timeouts left'; }
+  };
+  // ===== shared game model — single source of truth for both consoles =====
+  const GAME = {
+    home:{name:'Celtics', players:[
+      {num:4,name:'Méabh',pts:11,pf:2,min:19,on:true},
+      {num:5,name:'Ciara',pts:6,pf:2,min:14,on:true},
+      {num:7,name:'Sarah',pts:14,pf:4,min:22,on:true},
+      {num:9,name:'Aoife',pts:9,pf:3,min:17,on:true},
+      {num:11,name:'Niamh',pts:8,pf:1,min:20,on:true},
+      {num:3,name:'Saoirse',pts:0,pf:1,min:5,on:false},
+      {num:8,name:'Emma',pts:6,pf:2,min:11,on:false},
+      {num:12,name:'Róisín',pts:4,pf:0,min:9,on:false},
+      {num:15,name:'Lucy',pts:0,pf:0,min:3,on:false}
+    ]},
+    away:{name:'Huskies', players:[
+      {num:4,name:'Ava',pts:9,pf:1,min:16,on:true},
+      {num:6,name:'Katie',pts:13,pf:3,min:21,on:true},
+      {num:7,name:'Lily',pts:8,pf:2,min:15,on:true},
+      {num:8,name:'Hannah',pts:10,pf:4,min:20,on:true},
+      {num:10,name:'Grace',pts:12,pf:2,min:18,on:true},
+      {num:9,name:'Zoe',pts:4,pf:0,min:8,on:false},
+      {num:11,name:'Mia',pts:0,pf:1,min:4,on:false}
+    ]},
+    score:{home:58,away:52}, fouls:{home:5,away:3}
+  };
+  // ordering: ascending numeric jersey; missing number sorts last by name (per players-list REQ:player-order)
+  const byNum=(a,b)=>(a.num==null&&b.num==null)?a.name.localeCompare(b.name):a.num==null?1:b.num==null?-1:a.num-b.num;
+  const onOf=t=>GAME[t].players.filter(p=>p.on).sort(byNum);
+  const benchOf=t=>GAME[t].players.filter(p=>!p.on).sort(byNum);
+  const pById=(t,num)=>GAME[t].players.find(p=>p.num===num);
+  const tag=ns=>ns.map(n=>'#'+n).join(', ');
+  const statHd=label=>'<div class="statshd"><span></span><span>'+label+'</span><span class="s">PTS</span><span class="s">PF</span><span class="s">MIN</span></div>';
+  const pRow=(p,cls)=>{const ft=p.pf>=4;return '<div class="prow'+(cls?' '+cls:'')+'" data-num="'+p.num+'">'
+    +'<span class="jersey">'+p.num+'</span><span class="pname">'+p.name+'</span>'
+    +'<span class="stat">'+p.pts+'</span>'
+    +'<span class="stat'+(ft?' ft':'')+'">'+p.pf+(ft?'<span class="foulflag">⚠</span>':'')+'</span>'
+    +'<span class="stat">'+p.min+'</span></div>';};
+
+  let coachReq=null;   // {off:[num], on:[num]} on the home team — set by the coach, consumed by the scorekeeper
+
+  // ----- Coach console: requests a substitution for Celtics (home) -----
+  const coachOn=document.getElementById('oncourt'), coachBench=document.getElementById('bench'),
+        subBtn=document.getElementById('subBtn'), subCount=document.getElementById('subCount'), subPending=document.getElementById('subPending');
+  const coachSel=new Set();
+  function renderCoach(){
+    const oc=onOf('home'), bn=benchOf('home');
+    coachOn.innerHTML   = statHd('ON COURT ('+oc.length+')') + oc.map(p=>pRow(p, coachSel.has(p.num)?'sel':'')).join('');
+    coachBench.innerHTML= statHd('BENCH')               + bn.map(p=>pRow(p, coachSel.has(p.num)?'sel':'')).join('');
+  }
+  function coachSplit(){const off=[],on=[]; coachSel.forEach(n=>{const p=pById('home',n); if(p)(p.on?off:on).push(n);}); return {off,on};}
+  function refreshCoachSub(){
+    const {off,on}=coachSplit(), ok=off.length>0&&off.length===on.length;
+    subBtn.disabled=!ok;
+    subCount.textContent=(off.length||on.length)?('Off '+off.length+' ⇄ On '+on.length+(ok?'':' — counts must match')):'tap players to swap (equal counts)';
+    subPending.classList.add('hide');
+  }
+  function coachClick(e){const r=e.target.closest('.prow'); if(!r)return; const n=+r.dataset.num; coachSel.has(n)?coachSel.delete(n):coachSel.add(n); renderCoach(); refreshCoachSub();}
+  coachOn.addEventListener('click',coachClick); coachBench.addEventListener('click',coachClick);
+  subBtn.onclick=()=>{
+    const {off,on}=coachSplit(); coachReq={off,on}; updateSkReqCard();
+    subPending.classList.remove('hide');
+    subPending.textContent='⏳ Sub requested: '+tag(off)+' ⇄ '+tag(on)+' — sent to the scorekeeper console…';
+  };
+
+  // ----- Scorekeeper console: authoritative scoring / fouls / substitution (both teams) -----
+  const skHome=document.getElementById('skHome'), skAway=document.getElementById('skAway'),
+        skScoreH=document.getElementById('skScoreH'), skScoreA=document.getElementById('skScoreA'), skMsg=document.getElementById('skMsg'),
+        skReq=document.getElementById('skReq'), skReqLoad=document.getElementById('skReqLoad'),
+        skSubBtn=document.getElementById('skSubBtn'), skSubCount=document.getElementById('skSubCount');
+  let skTeam='home';
+  const skSel=new Set();   // selected jersey numbers on the active team
+  const skMessage=t=>{skMsg.classList.remove('hide');skMsg.textContent=t;};
+  const skPaint=()=>{skScoreH.textContent=GAME.score.home;skScoreA.textContent=GAME.score.away;};
+  function renderScorer(){
+    const t=skTeam, container=t==='home'?skHome:skAway, oc=onOf(t), bn=benchOf(t);
+    container.innerHTML = statHd('ON COURT')
+      + oc.map(p=>pRow(p, skSel.has(p.num)?'psel':'')).join('')
+      + '<div class="benchhd">BENCH</div>'
+      + bn.map(p=>pRow(p, 'benchrow'+(skSel.has(p.num)?' subin':''))).join('');
+    skHome.classList.toggle('hide',t!=='home'); skAway.classList.toggle('hide',t!=='away');
+  }
+  function skSplit(){const off=[],on=[]; skSel.forEach(n=>{const p=pById(skTeam,n); if(p)(p.on?off:on).push(p);}); return {off,on};}
+  function skRefreshSub(){
+    const {off,on}=skSplit(), ok=off.length>0&&off.length===on.length;
+    skSubBtn.disabled=!ok;
+    skSubCount.textContent=(off.length||on.length)?('Off '+off.length+' ⇄ On '+on.length+(ok?'':' — counts must match')):'tap players to swap (equal counts) — or load a coach request';
+    const canScore=off.length===1&&on.length===0;   // points only attributable to one on-court player
+    document.querySelectorAll('#scorer .pb').forEach(b=>b.disabled=!canScore);
+  }
+  function updateSkReqCard(){
+    if(skTeam!=='home'){ skReq.classList.add('hide'); return; }   // coach request belongs to Celtics
+    skReq.classList.remove('hide');
+    const rq=skReq.querySelector('.rq');
+    if(!coachReq){ rq.textContent='No coach substitution request'; skReqLoad.classList.add('hide'); return; }
+    const n=coachReq.off.length;
+    rq.innerHTML='🟦 Coach request · <b>'+n+' player'+(n>1?'s':'')+'</b> · OFF '+tag(coachReq.off)+' ⇄ ON '+tag(coachReq.on);
+    skReqLoad.classList.remove('hide');
+  }
+  document.querySelectorAll('#scorer .tt').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#scorer .tt').forEach(x=>x.classList.toggle('on',x===b));
+    skTeam=b.dataset.team; skSel.clear(); skMsg.classList.add('hide');
+    renderScorer(); updateSkReqCard(); skRefreshSub();
+  });
+  function skClick(e){const r=e.target.closest('.prow'); if(!r)return; const n=+r.dataset.num; skSel.has(n)?skSel.delete(n):skSel.add(n); renderScorer(); skRefreshSub();}
+  skHome.addEventListener('click',skClick); skAway.addEventListener('click',skClick);
+  document.querySelectorAll('#scorer .pb').forEach(b=>b.onclick=()=>{
+    const {off,on}=skSplit();
+    if(off.length!==1||on.length>0){skMessage('To score: select exactly one on-court player (and no bench).');return;}
+    const p=off[0], team=GAME[skTeam].name;
+    if(b.dataset.foul){ p.pf++; GAME.fouls[skTeam]++; skSel.delete(p.num); renderScorer(); renderCoach(); skRefreshSub();
+      skMessage('Foul · '+team+' #'+p.num+' '+p.name+' (PF '+p.pf+') — team fouls '+GAME.fouls[skTeam]+(GAME.fouls[skTeam]>=5?' · opponent in BONUS':'')); return; }
+    const pts=+b.dataset.pts; p.pts+=pts; GAME.score[skTeam]+=pts; skSel.delete(p.num);
+    renderScorer(); renderCoach(); skPaint(); skRefreshSub();
+    skMessage('Recorded · '+team+' #'+p.num+' '+p.name+' +'+pts+(pts===1?' (free throw)':''));
+  });
+  skSubBtn.onclick=()=>{
+    const {off,on}=skSplit();
+    const pairs=off.map((p,i)=>'#'+p.num+' '+p.name+' ⇄ #'+on[i].num+' '+on[i].name);
+    off.forEach(p=>p.on=false); on.forEach(p=>p.on=true);   // mutate authoritative on-court
+    skSel.clear(); coachReq=null;
+    if(skTeam==='home') coachSel.clear();   // clear coach's pending selection BEFORE re-render so highlights drop
+    renderScorer(); renderCoach(); updateSkReqCard(); skRefreshSub();   // both views re-render from GAME with cleared selections
+    if(skTeam==='home'){ refreshCoachSub(); subPending.classList.remove('hide'); subPending.textContent='✅ On-court updated by the scorekeeper — selection cleared.'; }
+    skMessage('✅ Substitution recorded · '+pairs.join(' ; ')+' · appended to event-timeline'+(skTeam==='home'?' · coach view updated':''));
+  };
+  skReqLoad.onclick=()=>{
+    if(!coachReq) return;
+    if(skTeam!=='home'){ skTeam='home'; document.querySelectorAll('#scorer .tt').forEach(x=>x.classList.toggle('on',x.dataset.team==='home')); }
+    skSel.clear(); coachReq.off.forEach(n=>skSel.add(n)); coachReq.on.forEach(n=>skSel.add(n));
+    renderScorer(); updateSkReqCard(); skRefreshSub();
+    skMessage('Coach request loaded — '+coachReq.off.length+' player(s) selected. Tap "Confirm substitution" to record.');
+  };
+
+  document.getElementById('skResetBtn').onclick=()=>{ skSel.clear(); renderScorer(); skRefreshSub(); skMsg.classList.add('hide'); };
+
+  // initial paint from the model
+  renderCoach(); refreshCoachSub(); renderScorer(); skPaint(); updateSkReqCard(); skRefreshSub();
+
+  // ---- TIMEKEEPER: clock / period / possession / timeouts / possession-time ----
+  let tkSecs=600, tkRun=false, tkInt=null, pIdx=2, possSel='D', qLenMin=10, qStarted=false;
+  const possAcc={H:54,A:46}, toState={H:2,A:1};
+  const tkClock=document.getElementById('tkClock'), tkSS=document.getElementById('tkSS'),
+        tkPer=document.getElementById('tkPer'), tkArrow=document.getElementById('tkArrow'),
+        tkPH=document.getElementById('tkPH'), tkPA=document.getElementById('tkPA');
+  const periods=['QUARTER 1','QUARTER 2','QUARTER 3','QUARTER 4','OVERTIME','OT 2'];
+  const fmt=s=>{s=Math.max(0,s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+  const tkPaint=()=>tkClock.textContent=fmt(tkSecs);
+  const accrue=()=>{ if(possSel==='H')possAcc.H++; else if(possSel==='A')possAcc.A++; else return;
+    const tot=possAcc.H+possAcc.A, hp=Math.round(possAcc.H/tot*100);
+    document.getElementById('barH').style.width=hp+'%'; document.getElementById('barA').style.width=(100-hp)+'%';
+    document.getElementById('capH').textContent='Celtics '+hp+'%'; document.getElementById('capA').textContent=(100-hp)+'% Huskies'; };
+  tkSS.onclick=()=>{
+    tkRun=!tkRun; tkSS.textContent=tkRun?'Stop':'Start'; tkSS.classList.toggle('run',tkRun);
+    if(tkRun){ qStarted=true; tkLenUI(); tkInt=setInterval(()=>{ if(tkSecs>0){tkSecs--;tkPaint();accrue();} else tkSS.onclick(); },1000); }
+    else clearInterval(tkInt);
+  };
+  // quarter-length setting — adjustable ±1 min only before the quarter's clock starts
+  const tkLenVal=document.getElementById('tkLenVal'), tkLenDown=document.getElementById('tkLenDown'),
+        tkLenUp=document.getElementById('tkLenUp'), tkLenHint=document.getElementById('tkLenHint');
+  function tkLenUI(){ tkLenVal.textContent=qLenMin+' min';
+    tkLenDown.disabled=qStarted||qLenMin<=1; tkLenUp.disabled=qStarted||qLenMin>=20;
+    tkLenHint.textContent=qStarted?'locked — quarter in progress':'set before the quarter starts'; }
+  const setLen=d=>{ if(qStarted)return; qLenMin=Math.min(20,Math.max(1,qLenMin+d)); tkSecs=qLenMin*60; tkPaint(); tkLenUI(); };
+  tkLenDown.onclick=()=>setLen(-1); tkLenUp.onclick=()=>setLen(1);
+  document.getElementById('tkMinus').onclick=()=>{tkSecs=Math.max(0,tkSecs-5);tkPaint();};
+  document.getElementById('tkPlus').onclick=()=>{tkSecs+=5;tkPaint();};
+  document.getElementById('tkAdv').onclick=()=>{
+    if(tkRun){clearInterval(tkInt);tkRun=false;tkSS.textContent='Start';tkSS.classList.remove('run');}
+    pIdx=Math.min(periods.length-1,pIdx+1); tkPer.textContent=periods[pIdx];
+    qLenMin=pIdx>=4?5:10; qStarted=false; tkSecs=qLenMin*60; tkPaint(); tkLenUI();   // new quarter → length editable again
+  };
+  const setPoss=h=>{tkPH.classList.toggle('on',h);tkPA.classList.toggle('on',!h);tkArrow.textContent=h?'◀':'▶';};
+  tkPH.onclick=()=>setPoss(true); tkPA.onclick=()=>setPoss(false);
+  const dotStr=n=>'●'.repeat(n)+'○'.repeat(3-n);
+  document.querySelectorAll('#timer .grant').forEach(b=>b.onclick=()=>{
+    const t=b.dataset.t; if(toState[t]<=0)return; toState[t]--;
+    document.getElementById('to'+t).textContent=dotStr(toState[t]); if(toState[t]<=0)b.disabled=true;
+    let left=60; const cd=document.getElementById('cd'+t); cd.classList.remove('hide'); cd.textContent='⏳ '+left+'s';
+    const iv=setInterval(()=>{left--;cd.textContent='⏳ '+left+'s';if(left<=0){clearInterval(iv);cd.classList.add('hide');}},1000);
+  });
+  document.querySelectorAll('#timer .ptime button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#timer .ptime button').forEach(x=>x.classList.toggle('on',x===b)); possSel=b.dataset.pt;
+  });
+  tkPaint(); tkLenUI();
+
+  // default screen: the public Game board
+  document.querySelector('.tabs button[data-p="board"]').click();
+</script>
+</body>
+</html>

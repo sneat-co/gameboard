@@ -5,3 +5,16 @@ project:
     host: github.com
     org: sneat-co
     repo: gameboard
+
+# Reviewer gates (event-keyed). Approve threshold defaults to B.
+# Brought over with the gameboard-live spec tree migrated from sneat-co/backstage.
+gates:
+    feature.approved:
+        reviewers:
+            - name: spec-reviewer
+              type: ai
+              prompt: .specscore/reviewers/feature-spec-reviewer.md
+              description: Baseline SpecScore Feature reviewer (BA/Developer/QA lenses)
+            - name: human-approval
+              type: human
+              description: Human author approval before plan/implement
