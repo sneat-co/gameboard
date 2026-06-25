@@ -1,0 +1,17 @@
+{
+  "name": "@sneat/extension-gameboard-contract",
+  "version": "0.0.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@angular/core": "^21.0.0",
+    "rxjs": "^7.0.0",
+    "@sneat/core": "^0.9.0",
+    "@sneat/data": "^0.9.0",
+    "@sneat/dto": "^0.9.0",
+    "@sneat/space-models": "^0.9.0",
+    "vitest": "^4.0.9"
+  },
+  "sideEffects": false
+}

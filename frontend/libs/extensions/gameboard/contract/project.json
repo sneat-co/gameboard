@@ -1,0 +1,54 @@
+{
+  "name": "ext-gameboard-contract",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/extensions/gameboard/contract/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "manifestRootsToUpdate": [
+        "dist/{projectRoot}"
+      ],
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    }
+  },
+  "tags": [
+    "type:contract",
+    "scope:gameboard"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
+      "options": {
+        "project": "libs/extensions/gameboard/contract/ng-package.json",
+        "tsConfig": "libs/extensions/gameboard/contract/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/extensions/gameboard/contract/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      },
+      "defaultConfiguration": "production"
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false,
+        "runnerConfig": "libs/extensions/gameboard/contract/vitest.config.ts"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@sneat/extension-gameboard-contract": [
+        "./libs/extensions/gameboard/contract/src/index.ts"
+      ],
+      "@sneat/extension-gameboard-shared": [
+        "./libs/extensions/gameboard/shared/src/index.ts"
+      ],
+      "@sneat/extension-gameboard-internal": [
+        "./libs/extensions/gameboard/internal/src/index.ts"
+      ]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

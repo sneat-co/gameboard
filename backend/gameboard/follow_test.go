@@ -64,9 +64,9 @@ func TestFollow_HTTP_AccountGate(t *testing.T) {
 		t.Fatalf("anonymous follow: expected 401, got %d", rec.Code)
 	}
 
-	// signed-in (X-Account-Id) → 201
+	// signed-in (Bearer token) → 201
 	req = httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/follows", bytes.NewReader(body))
-	req.Header.Set("X-Account-Id", "acc-1")
+	req.Header.Set("Authorization", testBearer)
 	rec = httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -77,7 +77,7 @@ func TestFollow_HTTP_AccountGate(t *testing.T) {
 func TestFollow_HTTP_BadBody(t *testing.T) {
 	srv := newServer()
 	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/follows", bytes.NewReader([]byte("x")))
-	req.Header.Set("X-Account-Id", "acc-1")
+	req.Header.Set("Authorization", testBearer)
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {

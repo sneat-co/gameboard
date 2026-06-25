@@ -1,0 +1,90 @@
+{
+  "name": "gameboard-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "gameboard",
+  "sourceRoot": "apps/gameboard-app/src",
+  "tags": [
+    "type:app",
+    "scope:gameboard"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "options": {
+        "outputPath": "dist/apps/gameboard-app",
+        "browser": "apps/gameboard-app/src/main.ts",
+        "tsConfig": "apps/gameboard-app/tsconfig.app.json",
+        "inlineStyleLanguage": "scss",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/gameboard-app/public"
+          }
+        ],
+        "styles": [
+          "apps/gameboard-app/src/styles.scss"
+        ]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "4mb",
+              "maximumError": "6mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "configurations": {
+        "production": {
+          "buildTarget": "gameboard-app:build:production"
+        },
+        "development": {
+          "buildTarget": "gameboard-app:build:development"
+        }
+      },
+      "defaultConfiguration": "development"
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@angular/build:unit-test",
+      "options": {
+        "watch": false,
+        "runnerConfig": "apps/gameboard-app/vitest.config.ts"
+      }
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "gameboard-app:build",
+        "port": 4200,
+        "staticFilePath": "dist/apps/gameboard-app/browser",
+        "spa": true
+      }
+    }
+  }
+}

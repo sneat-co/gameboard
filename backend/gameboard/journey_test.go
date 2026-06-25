@@ -14,7 +14,7 @@ import (
 // newServer wires the full stack (Handler → Service → dalgo store) for tests.
 func newServer() http.Handler {
 	mux := http.NewServeMux()
-	NewHandler(NewService(NewDalgoStore(dalgo2memory.NewDB()))).Register(mux)
+	NewHandler(NewService(NewDalgoStore(dalgo2memory.NewDB())), testID{}).Register(mux)
 	return mux
 }
 
@@ -22,6 +22,7 @@ func post(t *testing.T, srv http.Handler, gameID string, e et.Event) *httptest.R
 	t.Helper()
 	body, _ := json.Marshal(e)
 	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games/"+gameID+"/events", bytes.NewReader(body))
+	req.Header.Set("Authorization", testBearer) // writes require auth
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	return rec
@@ -165,10 +166,25 @@ func TestIdempotentReplayOverHTTP(t *testing.T) {
 func TestBadRequestBody(t *testing.T) {
 	srv := newServer()
 	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games/g/events", bytes.NewReader([]byte("not-json")))
+	req.Header.Set("Authorization", testBearer)
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+// TestAppendRequiresAuth — an anonymous append (no bearer token) is rejected 401,
+// before any body processing. Reads stay public (covered by other tests).
+func TestAppendRequiresAuth(t *testing.T) {
+	srv := newServer()
+	body, _ := json.Marshal(et.Event{EventID: "x", Type: et.EventScore, Source: et.SourceScorekeeper, WallClockMs: 1, Side: et.SideHome, Points: 2})
+	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games/g/events", bytes.NewReader(body))
+	// no Authorization header
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous append: expected 401, got %d %s", rec.Code, rec.Body.String())
 	}
 }
 
