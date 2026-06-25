@@ -20,6 +20,16 @@ The plan and salvaged acceptance assets already exist in this repo:
   - `src/contract.ts` — `GameState` shape + helpers `inBonus`, `publicPlayerLabel`, `sourceFor`, `newEventID`, plus `EventType`/`GameEvent`/`AppendResponse`.
   - `src/app.component.ts` / `src/api.service.ts` — the cohesive console+scoreboard UI logic + exact endpoint shapes.
 
+## Execution model — you orchestrate; subagents implement and review
+
+You are the **orchestrator**, not the implementer. Preserve your own context for coordination — do **not** write screen code yourself. For each slice, dispatch a fresh **implementer subagent**, then a **reviewer subagent**, with a fix loop in between, then record progress. (This is subagent-driven development; if the `superpowers:subagent-driven-development` skill is available, use it.)
+
+- **Implementer subagent (one per slice):** hand it the slice's deliverables (from "## Slices"), the global "DECISIONS ALREADY MADE", the interfaces/types produced by earlier slices, and a report-file path. It implements, runs **unit + the real-stack E2E to green**, commits on `feat/game-screens`, and writes its report. Model: a capable coding model for Slice 0 (contract + harness) and Slice 3 (console); a cheaper tier is fine for mechanical slices. Always set the model explicitly.
+- **Reviewer subagent (one per slice, after the implementer reports DONE):** write the slice diff to a file (`git diff <slice-base>..HEAD`), then dispatch a reviewer with the slice deliverables, the global constraints, and that diff. It returns two verdicts — **spec compliance** and **code quality** — with findings by severity. **Project-critical review focus:** the E2E MUST hit the real stack (no `page.route`/HTTP mocking) and assert public reads equal the fold — flag any mocked-backend E2E as an **Important** defect; also verify the new Ionic elements carry the required `data-testid`s and that nothing unrelated (landings, your uncommitted Header/Footer, main's ci.yml) was touched.
+- **Fix loop:** dispatch a fix subagent for every **Critical/Important** finding; re-review until both verdicts pass. Record **Minor** findings in the ledger. Never advance a slice with open Critical/Important issues.
+- **Ledger (durable progress):** maintain `docs/legacy-mvp-frontend/REBUILD-LOG.md` — append one line per slice when its review is clean (commit range, tests passing, assumptions, deferred items, Minor findings). After any context compaction, trust the ledger + `git log` and resume at the first unmarked slice; **never re-run a completed slice.**
+- **Continuous:** do not stop to check in between slices. Run all slices, then the final review. Only stop on a true hard blocker (log it and stop).
+
 ## Read these before writing code (in order)
 1. `spec/plans/gameboard-live.md` (the "Frontend Reality & Rebuild" + slice plan).
 2. `docs/legacy-mvp-frontend/src/contract.ts` and `src/app.component.ts` and `src/api.service.ts`.
@@ -81,12 +91,16 @@ The E2E specs accumulate into a single full-game lifecycle scenario via a **shar
 - **Slice 5 — spectator/follow.** Follow control. **Chain gate:** anonymous follow → real backend 401. Signed-in follow edge: **unit test** stubbing `GameService.follow` (decision 10; real Auth-emulator sign-in deferred).
 - **Umbrella — full-game lifecycle E2E.** The complete chain across every screen (the salvaged `full-game.spec.ts` reborn on the real stack) — the MVP release gate; keep green.
 
-## Per-slice protocol
-1. Implement on a branch `feat/game-screens` (create it from current `main` at start; see Git rules).
-2. Write/adapt the test(s) and the component together; run `pnpm exec nx test gameboard-app` and `pnpm exec nx e2e gameboard-app-e2e` until green (build first if needed).
-3. Commit with a message naming the slice and **any assumptions you made**. Use the trailer:
+## Per-slice loop (orchestrator repeats for each slice)
+1. At the very start, create branch **`feat/game-screens`** from current `main` (see Git rules); record its base SHA. All implementer/fix subagents work on this branch.
+2. Record the slice base = current HEAD. Dispatch the **implementer subagent** for the slice (deliverables + decisions + prior interfaces + report-file path). It writes/adapts the test(s) + code, runs `pnpm exec nx test gameboard-app` and the real-stack `nx e2e` until green, and **commits** with a message naming the slice and any assumptions, using the trailer:
    `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
-4. Append a one-line status to `docs/legacy-mvp-frontend/REBUILD-LOG.md` (create it) per slice: what landed, tests passing, assumptions, anything deferred.
+3. On DONE: write `git diff <slice-base>..HEAD` to a file and dispatch the **reviewer subagent** (spec + quality, with the project-critical focus above).
+4. For Critical/Important findings: dispatch a **fix subagent**, then re-review. Repeat until clean.
+5. Append the slice's clean-status line to `docs/legacy-mvp-frontend/REBUILD-LOG.md`, then move to the next slice.
+
+## Final whole-branch review
+After all slices are clean, dispatch ONE **final reviewer subagent on the most capable model** over `git diff <branch-base>..HEAD`: full chain coverage, no mocked-backend E2E anywhere, the umbrella full-game E2E is present and green, CI (`ci.yml`) updated on-branch, and scope respected. Dispatch a single fix subagent for any Critical/Important findings, re-review, then proceed to the PR.
 
 ## Git rules (IMPORTANT — do not deploy)
 - Work on branch **`feat/game-screens`**. **Never commit to or push `main`** — pushing `main` triggers a Cloudflare production deploy. Pushing the feature branch is fine.
@@ -100,4 +114,4 @@ The E2E specs accumulate into a single full-game lifecycle scenario via a **shar
 - **`backend/` is mostly off-limits** — the ONLY allowed backend change is adding the Firestore-emulator store selection to `backend/cmd/gameboardd/main.go` (decision 1). Do not touch the backend's domain logic, handlers, service, or Go tests beyond what that swap needs; keep its existing tests green (`cd backend && go test ./...`).
 
 ## Definition of done
-All five slices implemented; `pnpm exec nx test gameboard-app` and `pnpm exec nx e2e gameboard-app-e2e` green; per-slice commits on `feat/game-screens` with logged assumptions; `REBUILD-LOG.md` written; branch pushed and a draft PR opened. If you hit the genuine hard-blocker bar, commit what's green, write the blocker + everything you tried into `REBUILD-LOG.md` and the PR description, and stop.
+All slices (0–5 + the umbrella full-game E2E) implemented, **each reviewed clean** (spec compliance + code quality, with Critical/Important findings fixed); the emulator-backed `ci.yml` updated on-branch; `pnpm exec nx test gameboard-app` and the **real-stack** `pnpm exec nx e2e gameboard-app-e2e` green; the **final whole-branch review** clean; `REBUILD-LOG.md` written (per-slice status, assumptions, deferred, Minor findings); branch `feat/game-screens` pushed and a **draft PR** opened summarizing slices, test evidence, assumptions, and deferred items. If you hit the genuine hard-blocker bar, commit what's green, write the blocker + everything you tried into `REBUILD-LOG.md` and the PR description, and stop.
