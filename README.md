@@ -101,21 +101,14 @@ Open **https://gameboard.localhost/** (landing) and
 
 ## Deployment
 
-Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds the site and
-publishes it to GitHub Pages using the official artifact flow:
+Deployed to **Cloudflare** on the custom domain
+[gameboard.live](https://gameboard.live). Cloudflare's Git integration builds and
+publishes the Astro `dist/` automatically on every push to `main` — there is no
+deploy workflow in this repo. The site is part of the Sneat Site Hosting & Auth
+Pattern (backstage `spec/features/site-hosting-pattern`): the landing owns `/` and
+the Angular/Ionic app is served under `/app` on the same host.
 
-1. `actions/configure-pages`
-2. `actions/upload-pages-artifact`
-3. `actions/deploy-pages`
-
-### Custom domain
-
-`public/CNAME` contains `gameboard.live`, so the build ships the CNAME file required
-by GitHub Pages. Because the site uses a custom domain (not a project subpath), no
-repo-name `base` path is configured — `site` is set to `https://gameboard.live`.
-
-Enable **Settings → Pages → Source: GitHub Actions** on the repository, and point the
-domain's DNS at GitHub Pages.
+`site` is set to `https://gameboard.live` (custom domain, no repo-name `base`).
 
 ## Roadmap
 
