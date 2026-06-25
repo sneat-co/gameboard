@@ -20,7 +20,7 @@ export class GameService {
    * base URL). Venue/competition/role are collected in the UI but not yet
    * accepted by the backend; only home/away/scheduledMs are sent today.
    */
-  createGame(home: Side, away: Side, scheduledMs = 0): Promise<GameRecord> {
+  public createGame(home: Side, away: Side, scheduledMs = 0): Promise<GameRecord> {
     return firstValueFrom(
       this.api.post<GameRecord>('api4gameboard/games', { home, away, scheduledMs }),
     );

@@ -88,4 +88,16 @@ export default [
     // Override or add rules here
     rules: {},
   },
+  {
+    // Require an explicit public/private/protected on every class member
+    // (constructors excepted — `public constructor` is just noise). Template-only
+    // members of Angular components should be `protected`.
+    files: ['**/*.ts', '**/*.tsx', '**/*.cts', '**/*.mts'],
+    rules: {
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        { accessibility: 'explicit', overrides: { constructors: 'no-public' } },
+      ],
+    },
+  },
 ];

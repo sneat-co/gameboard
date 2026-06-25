@@ -53,6 +53,48 @@ pnpm exec nx build gameboard-app          # production build -> dist/apps/gamebo
 pnpm exec nx run-many -t lint test build
 ```
 
+## Testing local changes to a `@sneat/*` library
+
+The `@sneat/*` packages are published libs (built in the sibling `sneat-libs`
+Nx workspace) and consumed here from `node_modules`. To test an unpublished
+change to one — e.g. `@sneat/auth-ui` — point this app at the **local build**,
+verify, then publish upstream and point back to the version.
+
+Use an **injected** `file:` dependency, **not** a plain `link:`/override. This
+app and `sneat-libs` can be on different Angular *patch* versions (e.g. app
+21.2.9, libs 21.2.0); a plain symlink makes the linked lib resolve its
+`@angular/*` from `sneat-libs/node_modules`, loading a **second** Angular →
+`TS2345 'Route | Route'` at build and injector errors at runtime. `injected:
+true` makes pnpm copy the package into this app's store and resolve its peers
+against **this app's** Angular, eliminating the skew.
+
+1. **Build the lib** in `sneat-libs` (produces `dist/libs/<lib>`):
+   ```sh
+   ( cd ../../sneat-libs && pnpm exec nx build auth-ui )
+   ```
+2. **Point this app at it** — in `package.json`:
+   ```jsonc
+   "@sneat/auth-ui": "file:../../sneat-libs/dist/libs/auth/ui",
+   // and a top-level:
+   "dependenciesMeta": { "@sneat/auth-ui": { "injected": true } }
+   ```
+3. **Clean install** — pnpm will NOT pick up a newly-added override/dep
+   incrementally (it reports "Already up to date" and does nothing, even with
+   `--force`). You must reinstall from scratch:
+   ```sh
+   rm -rf node_modules pnpm-lock.yaml && pnpm install
+   ```
+4. **Re-optimize Vite deps**, then (re)start the dev server:
+   ```sh
+   rm -rf .angular/cache/*/gameboard-app/vite
+   ```
+5. **Iterate**: after each lib edit, rebuild the lib (step 1) and restart the
+   dev server (clearing the Vite cache as in step 4) so the change is picked up.
+
+**Revert after publishing upstream**: restore `"@sneat/auth-ui": "<version>"`
+in `package.json`, delete its `dependenciesMeta` entry, then clean install
+(step 3).
+
 ## Notes
 
 - The app's `appId` is cast `as SneatApp` because the placeholder id isn't in

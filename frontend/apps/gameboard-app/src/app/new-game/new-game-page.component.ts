@@ -24,6 +24,8 @@ import {
   IonItem,
   IonMenuButton,
   IonNote,
+  IonSelect,
+  IonSelectOption,
   IonSpinner,
   IonTitle,
   IonToolbar,
@@ -84,6 +86,8 @@ import { SneatAuthStateService } from '@sneat/auth-core';
     IonChip,
     IonNote,
     IonButton,
+    IonSelect,
+    IonSelectOption,
     IonSpinner,
   ],
   template: `
@@ -102,7 +106,7 @@ import { SneatAuthStateService } from '@sneat/auth-core';
           @if (selectedSport(); as s) {
             <ion-card-title>{{ s.emoji }} New {{ s.label }} game</ion-card-title>
             <ion-note
-              >Two team names and a time is all you need — everything else is
+              >Two team names and your role is all you need — everything else is
               optional.</ion-note
             >
           } @else {
@@ -127,16 +131,23 @@ import { SneatAuthStateService } from '@sneat/auth-core';
               }
             </div>
           } @else {
-          <!-- Step 2 — the existing game form, shown once a sport is picked. -->
-          <ion-item lines="none" class="chosen-sport">
-            <ion-note slot="start">{{ selectedSport()?.emoji }} {{ selectedSport()?.label }}</ion-note>
-            <ion-button
-              slot="end"
-              fill="clear"
-              size="small"
-              (click)="sport.set('')"
-              >Change sport</ion-button
+          <!-- Step 2 — the existing game form, shown once a sport is picked.
+               Switching sport is now a dropdown (the big-button picker only
+               shows for the very first, not-yet-chosen state). -->
+          <ion-item class="chosen-sport">
+            <ion-select
+              label="Sport"
+              labelPlacement="stacked"
+              interface="popover"
+              [ngModel]="sport()"
+              (ngModelChange)="sport.set($event)"
             >
+              @for (s of sports; track s.id) {
+                <ion-select-option [value]="s.id"
+                  >{{ s.emoji }} {{ s.label }}</ion-select-option
+                >
+              }
+            </ion-select>
           </ion-item>
 
           <!-- Sign-in affordance — non-blocking. Anonymous users can ignore it
@@ -183,6 +194,11 @@ import { SneatAuthStateService } from '@sneat/auth-core';
               (ngModelChange)="homeName.set($event)"
             />
           </ion-item>
+          @if (showErrors() && homeNameInvalid()) {
+            <ion-note color="danger" class="field-error"
+              >Home team name is required.</ion-note
+            >
+          }
 
           <!-- Away -->
           <ion-item>
@@ -202,6 +218,11 @@ import { SneatAuthStateService } from '@sneat/auth-core';
               (ngModelChange)="awayName.set($event)"
             />
           </ion-item>
+          @if (showErrors() && awayNameInvalid()) {
+            <ion-note color="danger" class="field-error"
+              >Away team name is required.</ion-note
+            >
+          }
 
           <!-- Schedule -->
           <ion-item>
@@ -243,23 +264,29 @@ import { SneatAuthStateService } from '@sneat/auth-core';
 
           <!-- Role -->
           <div class="role">
-            <ion-note>Your role <em>(self-declared)</em></ion-note>
+            <ion-note [color]="showErrors() && roleInvalid() ? 'danger' : undefined"
+              >Your role(s) <em>(self-declared — pick one or more)</em></ion-note
+            >
             <div class="chips">
               @for (r of roles; track r) {
                 <ion-chip
-                  [color]="role() === r ? 'primary' : 'medium'"
-                  [outline]="role() !== r"
-                  (click)="role.set(r)"
+                  [color]="selectedRoles().includes(r) ? 'primary' : 'medium'"
+                  [outline]="!selectedRoles().includes(r)"
+                  (click)="toggleRole(r)"
                   >{{ label(r) }}</ion-chip
                 >
               }
             </div>
+            @if (showErrors() && roleInvalid()) {
+              <ion-note color="danger" class="field-error"
+                >Please select at least one role.</ion-note
+              >
+            }
           </div>
 
           <ion-button
             expand="block"
             class="ion-margin-top"
-            [disabled]="!canCreate() || submitting()"
             (click)="create()"
           >
             @if (submitting()) {
@@ -274,6 +301,11 @@ import { SneatAuthStateService } from '@sneat/auth-core';
     </ion-content>
   `,
   styles: `
+    .field-error {
+      display: block;
+      margin: 0.25rem 1rem 0;
+      font-size: 0.8rem;
+    }
     .sports {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -321,37 +353,55 @@ export class NewGamePageComponent {
   private readonly router = inject(Router);
   private readonly authStateService = inject(SneatAuthStateService);
 
-  readonly roles = CREATOR_ROLES;
-  readonly sports = SPORTS;
+  protected readonly roles = CREATOR_ROLES;
+  protected readonly sports = SPORTS;
 
   // Whether a user is currently signed in — drives the in-page sign-in
   // affordance and (in Task 4) the explicit authenticated create.
-  readonly isSignedIn = toSignal(
+  protected readonly isSignedIn = toSignal(
     this.authStateService.authStatus.pipe(map((s) => s === 'authenticated')),
     { initialValue: false },
   );
 
   // Two team names + colours, schedule, optional metadata, self-declared role —
   // all signals for zoneless-safe change detection.
-  readonly sport = signal('');
-  readonly homeName = signal('');
-  readonly homeColour = signal('#1f9d55');
-  readonly awayName = signal('');
-  readonly awayColour = signal('#2563eb');
-  readonly date = signal('');
-  readonly time = signal('');
-  readonly venue = signal('');
-  readonly competition = signal('');
-  readonly role = signal<CreatorRole>('coach');
-  readonly submitting = signal(false);
+  protected readonly sport = signal('');
+  protected readonly homeName = signal('');
+  protected readonly homeColour = signal('#1f9d55');
+  protected readonly awayName = signal('');
+  protected readonly awayColour = signal('#2563eb');
+  protected readonly date = signal('');
+  protected readonly time = signal('');
+  protected readonly venue = signal('');
+  protected readonly competition = signal('');
+  // No role pre-selected — the user must pick at least one before a game can be
+  // created. Multiple roles are allowed (e.g. coach + score-keeper).
+  protected readonly selectedRoles = signal<readonly CreatorRole[]>([]);
+  protected readonly submitting = signal(false);
+
+  // Required-field errors only surface after the first create attempt, so a
+  // pristine form isn't littered with red text.
+  protected readonly showErrors = signal(false);
 
   // The sport chosen in step 1, resolved to its label/emoji for display.
-  readonly selectedSport = computed(
+  protected readonly selectedSport = computed(
     () => this.sports.find((s) => s.id === this.sport()) ?? null,
   );
 
-  readonly canCreate = computed(
-    () => this.homeName().trim().length > 0 && this.awayName().trim().length > 0,
+  // Per-field validity for the required fields, so each can show its own error.
+  protected readonly homeNameInvalid = computed(
+    () => this.homeName().trim().length === 0,
+  );
+  protected readonly awayNameInvalid = computed(
+    () => this.awayName().trim().length === 0,
+  );
+  protected readonly roleInvalid = computed(
+    () => this.selectedRoles().length === 0,
+  );
+
+  protected readonly canCreate = computed(
+    () =>
+      !this.homeNameInvalid() && !this.awayNameInvalid() && !this.roleInvalid(),
   );
 
   constructor() {
@@ -369,7 +419,7 @@ export class NewGamePageComponent {
       if (draft.time !== undefined) this.time.set(draft.time);
       if (draft.venue !== undefined) this.venue.set(draft.venue);
       if (draft.competition !== undefined) this.competition.set(draft.competition);
-      if (draft.role) this.role.set(draft.role);
+      if (draft.roles?.length) this.selectedRoles.set(draft.roles);
     }
 
     // Auto-save every field change as the single most-recent draft — no explicit
@@ -385,7 +435,7 @@ export class NewGamePageComponent {
         time: this.time(),
         venue: this.venue(),
         competition: this.competition(),
-        role: this.role(),
+        roles: this.selectedRoles(),
       }),
     );
   }
@@ -395,31 +445,57 @@ export class NewGamePageComponent {
    * in @sneat/auth-core), so the fragment is the router-relative return path.
    * The draft is already in localStorage, so the round-trip is loss-free
    * (anon-first-new-game#ac:roundtrip-preserves-draft). */
-  signIn(): void {
+  protected signIn(): void {
+    this.goToLogin('Sign in to use a registered sneat.team team for this game.');
+  }
+
+  /** Navigate to /login (returning to /new-game afterwards) showing a reason on
+   * the login page: `reason` is the heading, `reasonDetail` an optional
+   * sub-heading. */
+  private goToLogin(reason: string, reasonDetail?: string): void {
     void this.router.navigate(['/login'], {
       fragment: '/new-game',
-      queryParams: {
-        reason: 'Sign in to use a registered sneat.team team for this game.',
-      },
+      queryParams: { reason, ...(reasonDetail ? { reasonDetail } : {}) },
     });
   }
 
-  label(r: CreatorRole): string {
+  // Toggle a role in/out of the multi-select set.
+  protected toggleRole(r: CreatorRole): void {
+    this.selectedRoles.update((rs) =>
+      rs.includes(r) ? rs.filter((x) => x !== r) : [...rs, r],
+    );
+  }
+
+  protected label(r: CreatorRole): string {
     return r
       .split('-')
       .map((w) => w[0].toUpperCase() + w.slice(1))
       .join('-');
   }
 
-  async create(): Promise<void> {
-    if (!this.canCreate() || this.submitting()) return;
+  protected async create(): Promise<void> {
+    if (this.submitting()) return;
+    // The Create button is never disabled: clicking it always validates and,
+    // if anything required is missing, reveals the per-field errors and tells
+    // the user what to fix rather than silently doing nothing.
+    if (!this.canCreate()) {
+      this.showErrors.set(true);
+      await this.notify(
+        'Please fill in the required fields highlighted below.',
+        'warning',
+      );
+      return;
+    }
     // Persisting a game requires authentication and an explicit action. An
     // anonymous user who triggers create is routed through sign-in first; the
     // draft stays local (localStorage) and nothing is written to the backend
     // until they return and explicitly create while signed in
     // (anon-first-new-game#ac:anonymous-create-routes-through-signin).
     if (!this.isSignedIn()) {
-      this.signIn();
+      this.goToLogin(
+        'Sign in with Sneat.co account to create new game',
+        'The game will be linked to your account and you would be able to manage it.',
+      );
       return;
     }
     this.submitting.set(true);
@@ -442,7 +518,7 @@ export class NewGamePageComponent {
 
   private async notify(
     message: string,
-    color: 'success' | 'danger',
+    color: 'success' | 'danger' | 'warning',
   ): Promise<void> {
     const toast = await this.toasts.create({ message, color, duration: 3000 });
     await toast.present();

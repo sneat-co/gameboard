@@ -4,17 +4,16 @@ import { redirectToLoginIfNotSignedIn } from '@sneat/auth-core';
 
 export const appRoutes: Route[] = [
   {
-    // Authenticated landing: lists the user's spaces. Unauthenticated visitors
-    // are redirected to /login by the auth guard. Replaces the previous
-    // redirectTo:'login', which bounced signed-in users back to the login page.
+    // Public landing. Anonymous-friendly: shows a New game CTA and cross-promo
+    // cards to the wider Sneat ecosystem; signed-in users additionally see their
+    // spaces. NOT auth-guarded so a first-time visitor lands here with zero
+    // friction (mirrors the anon-first new-game flow).
     path: '',
     pathMatch: 'full',
     loadComponent: () =>
       import('./home/gameboard-home-page.component').then(
         (m) => m.GameboardHomePageComponent,
       ),
-    canActivate: [AuthGuard],
-    data: { authGuardPipe: () => redirectToLoginIfNotSignedIn },
   },
   {
     // New game — the on-ramp to a GameBoard.live game.

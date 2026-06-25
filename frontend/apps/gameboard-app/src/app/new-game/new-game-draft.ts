@@ -19,7 +19,9 @@ export interface NewGameDraft {
   time: string;
   venue: string;
   competition: string;
-  role: CreatorRole;
+  // Self-declared roles. Empty = none chosen yet; at least one must be selected
+  // before a game can be created. Multiple roles are allowed.
+  roles: readonly CreatorRole[];
 }
 
 /** Single most-recent draft key. Namespaced to avoid clashing with other apps
