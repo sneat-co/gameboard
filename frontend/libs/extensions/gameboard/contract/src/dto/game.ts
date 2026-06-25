@@ -1,6 +1,7 @@
-// Minimal client mirror of the gameboard new-game wire contract
-// (gameboard-ext/typespec/api4gameboard.tsp). Productionization: replace with an
-// import from @sneat/extension-gameboard-contract once that lib is published.
+// Gameboard new-game wire contract — the TS side of api4gameboard.tsp
+// (gameboard-ext). Lives in the `contract` tier per the extension-library
+// architecture. NOTE: still pending reconciliation with the gameboard-ext
+// `@sneat/extension-gameboard-contract` package (the *-ext repo).
 
 export type TeamSide = 'home' | 'away';
 

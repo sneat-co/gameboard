@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { GameRecord, Side } from './game-contract';
+import { GameRecord, Side } from '@sneat/extension-gameboard-contract';
 
 /** Base URL of the gameboard backend (empty = same origin). */
 export const GAMEBOARD_API_BASE = new InjectionToken<string>('GAMEBOARD_API_BASE');

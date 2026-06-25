@@ -25,7 +25,11 @@ import {
   IonToolbar,
   ToastController,
 } from '@ionic/angular/standalone';
-import { CREATOR_ROLES, CreatorRole, Side } from './game-contract';
+import {
+  CREATOR_ROLES,
+  CreatorRole,
+  Side,
+} from '@sneat/extension-gameboard-contract';
 import { NewGameService } from './new-game.service';
 
 // New game screen — the on-ramp to a GameBoard.live game.
