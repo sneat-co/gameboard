@@ -11,8 +11,7 @@ const path = Astro.url.pathname;
 <header class="site-header">
   <div class="container bar">
     <a href="/" class="brand" aria-label="GameBoard.live home">
-      <span class="dot"></span>
-      GameBoard<span class="tld">.live</span>
+      <span class="board"><span class="g">G</span>ame<span class="b">B</span>oard</span><span class="rec-dot" aria-hidden="true"></span><span class="tld">live</span>
     </a>
 
     <nav aria-label="Primary">
@@ -54,20 +53,33 @@ const path = Astro.url.pathname;
     color: var(--color-text);
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
   }
   .brand:hover {
     text-decoration: none;
   }
-  .tld {
-    color: var(--color-accent-text);
+  .board {
+    background: radial-gradient(120% 120% at 50% 0%, var(--gb-score-bg-top), var(--gb-score-bg));
+    border: 1px solid var(--gb-score-bg-top);
+    border-radius: 8px;
+    color: #fff;
+    padding: 0.16em 0.5em;
   }
-  .dot {
-    width: 12px;
-    height: 12px;
+  .board .g {
+    color: var(--gb-score-home);
+  }
+  .board .b {
+    color: var(--gb-score-away);
+  }
+  .tld {
+    color: var(--color-danger);
+  }
+  .rec-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: var(--color-accent);
-    box-shadow: 0 0 12px var(--color-accent);
+    background: var(--color-danger);
+    margin-inline: 0.32em;
   }
   nav {
     margin-left: auto;

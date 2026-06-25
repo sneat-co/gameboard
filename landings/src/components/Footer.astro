@@ -22,7 +22,7 @@ const groups = [
 <footer class="site-footer">
   <div class="container cols">
     <div class="brand-col">
-      <a href="/" class="brand">GameBoard<span class="tld">.live</span></a>
+      <a href="/" class="brand" aria-label="GameBoard.live home"><span class="board"><span class="g">G</span>ame<span class="b">B</span>oard</span><span class="rec-dot" aria-hidden="true"></span><span class="tld">live</span></a>
       <p>Live scoreboards for clubs, schools and tournaments.</p>
     </div>
 
@@ -66,8 +66,29 @@ const groups = [
   .brand:hover {
     text-decoration: none;
   }
+  .board {
+    background: radial-gradient(120% 120% at 50% 0%, var(--gb-score-bg-top), var(--gb-score-bg));
+    border: 1px solid var(--gb-score-bg-top);
+    border-radius: 8px;
+    color: #fff;
+    padding: 0.16em 0.5em;
+  }
+  .board .g {
+    color: var(--gb-score-home);
+  }
+  .board .b {
+    color: var(--gb-score-away);
+  }
   .tld {
-    color: var(--color-accent-text);
+    color: var(--color-danger);
+  }
+  .rec-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    margin-inline: 0.32em;
   }
   .col h3 {
     font-size: 0.85rem;
