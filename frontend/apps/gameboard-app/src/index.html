@@ -3,7 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <title>gameboard-app</title>
-    <base href="/" />
+    <!-- Served under the /app/ prefix on gameboard.live (and via the local
+         Caddy proxy). The Cloudflare Worker strips /app before asset lookup. -->
+    <base href="/app/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
   </head>

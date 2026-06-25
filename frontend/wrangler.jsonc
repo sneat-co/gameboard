@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gameboard-app",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-06-25",
+  // The Ionic app is served under the `/app/` URL prefix (baseHref in
+  // apps/gameboard-app/project.json) and Cloudflare routes
+  // `gameboard.live/app/*` here. The built assets live under
+  // dist/apps/gameboard-app/browser WITHOUT the `/app` segment, so the Worker
+  // strips the prefix before delegating to the ASSETS binding.
+  // Implements backstage spec/features/site-hosting-pattern.
+  "assets": {
+    "directory": "./dist/apps/gameboard-app/browser",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+  "routes": [
+    { "pattern": "gameboard.live/app", "zone_name": "gameboard.live" },
+    { "pattern": "gameboard.live/app/*", "zone_name": "gameboard.live" }
+  ]
+}
