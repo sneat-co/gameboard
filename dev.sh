@@ -9,18 +9,19 @@
 #   4. Astro landing dev server (:4321)
 #   5. Caddy reverse proxy -> https://gameboard.localhost:8443/
 #
-# Repos are sibling checkouts under the same parent (sneat-co/):
-#   gameboard-live (this repo) · gameboard · sneat-go · sneat-firebase
+# This repo (gameboard) holds frontend/ and landings/. The backend and
+# Firebase config are sibling checkouts under the same parent (sneat-co/):
+#   gameboard (this repo) · sneat-go · sneat-firebase
 #
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # gameboard-live
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # gameboard
 PARENT="$(dirname "$ROOT")"                            # sneat-co
 
 FIREBASE_DIR="$PARENT/sneat-firebase/firebase"
 GO_DIR="$PARENT/sneat-go"
-APP_DIR="$PARENT/gameboard/frontend"
-LANDING_DIR="$ROOT"
+APP_DIR="$ROOT/frontend"
+LANDING_DIR="$ROOT/landings"
 
 # The app on localhost uses @sneat/app's emulator config: projectId
 # 'local-sneat-app' + the 'demo-' prefix => 'demo-local-sneat-app'. The
@@ -34,7 +35,7 @@ done
 # Caddy on :8443 so it runs WITHOUT sudo. Derived from the committed Caddyfile
 # (which binds :443) so the source stays the single source of truth.
 CADDYFILE_DEV="$(mktemp -t gameboard-caddyfile)"
-sed 's/^gameboard\.localhost {/gameboard.localhost:8443 {/' "$ROOT/Caddyfile" >"$CADDYFILE_DEV"
+sed 's/^gameboard\.localhost {/gameboard.localhost:8443 {/' "$LANDING_DIR/Caddyfile" >"$CADDYFILE_DEV"
 
 PIDS=()
 
@@ -95,7 +96,7 @@ start landing "$LANDING_DIR" pnpm dev --host 127.0.0.1
 # 5. Reverse proxy. Wait for the upstreams so early requests don't 502.
 wait_port 4321 "landing"
 wait_port 4301 "app"
-start caddy "$ROOT" caddy run --config "$CADDYFILE_DEV"
+start caddy "$LANDING_DIR" caddy run --config "$CADDYFILE_DEV"
 
 echo
 echo "==> Up. Open:"

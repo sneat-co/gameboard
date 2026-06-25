@@ -1,7 +1,8 @@
-name: Deploy frontend (Cloudflare)
+name: Deploy app (Cloudflare)
 
-# Manual deploy of the gameboard Ionic app to Cloudflare (Workers static
-# assets) under gameboard.live/app, via the shared reusable workflow.
+# Manual deploy of the gameboard Ionic app (frontend/) to Cloudflare
+# (Workers static assets, worker "gameboard-app") under gameboard.live/app,
+# via the shared Nx reusable workflow.
 # Manual (workflow_dispatch) on purpose: it requires the CLOUDFLARE_*
 # repository secrets, so it must not run automatically until those are set.
 # Once the secrets exist, switch the trigger to `push: branches: [main]` if

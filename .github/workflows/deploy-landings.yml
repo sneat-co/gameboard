@@ -1,0 +1,41 @@
+name: Deploy landings (Cloudflare)
+
+# Manual deploy of the Astro landing site (landings/) to Cloudflare
+# (Workers static assets, worker "gameboard-live") at the gameboard.live root.
+# Manual (workflow_dispatch) on purpose: it requires the CLOUDFLARE_*
+# repository secrets, so it must not run automatically until those are set.
+# Once the secrets exist, switch the trigger to `push: branches: [main]`
+# (with `paths: [landings/**]`) if you want auto-deploy.
+#
+# Standalone (not the shared cf-deploy.yml): that reusable workflow builds with
+# `nx build`, but landings is an Astro project built with `pnpm build`.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm + Node
+        uses: sneat-co/cicd/actions/setup-pnpm-node@main
+        with:
+          working-directory: landings
+
+      - name: Build
+        working-directory: landings
+        run: pnpm build
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: landings
+          command: deploy --config wrangler.jsonc
