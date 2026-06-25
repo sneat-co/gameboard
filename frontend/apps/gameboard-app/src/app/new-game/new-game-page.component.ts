@@ -26,7 +26,7 @@ import {
   ToastController,
 } from '@ionic/angular/standalone';
 import { CREATOR_ROLES, CreatorRole, Side } from './game-contract';
-import { NewGameService } from './new-game.service';
+import { GameService } from '../game.service';
 
 // New game screen — the on-ramp to a GameBoard.live game.
 // Implements the approved `sports/gameboard-live/new-game` Feature / prototype:
@@ -205,7 +205,7 @@ import { NewGameService } from './new-game.service';
   `,
 })
 export class NewGamePageComponent {
-  private readonly api = inject(NewGameService);
+  private readonly gameService = inject(GameService);
   private readonly toasts = inject(ToastController);
 
   readonly roles = CREATOR_ROLES;
@@ -242,7 +242,7 @@ export class NewGamePageComponent {
     const scheduledMs =
       this.date() && this.time() ? Date.parse(`${this.date()}T${this.time()}`) : 0;
     try {
-      const game = await this.api.createGame(home, away, scheduledMs);
+      const game = await this.gameService.createGame(home, away, scheduledMs);
       await this.notify(`Game created · #${game.id}`, 'success');
       // TODO: navigate to the game scoreboard once that route exists.
     } catch {
