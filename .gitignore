@@ -19,3 +19,6 @@ dist/
 # Firebase Hosting deploy cache
 .firebase/
 specscore.local.yaml
+
+# Brainstorming visual companion
+.superpowers/
