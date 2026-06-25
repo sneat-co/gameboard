@@ -14,6 +14,7 @@
       <span class="score" data-score="home">62</span>
 
       <div class="controls">
+        <button data-act="score" data-team="home" data-pts="-1" aria-label="Home, subtract 1 point">&minus;1</button>
         <button data-act="score" data-team="home" data-pts="1" aria-label="Home, add 1 point">+1</button>
         <button data-act="score" data-team="home" data-pts="2" aria-label="Home, add 2 points">+2</button>
         <button data-act="score" data-team="home" data-pts="3" aria-label="Home, add 3 points">+3</button>
@@ -47,6 +48,7 @@
       <span class="score" data-score="away">58</span>
 
       <div class="controls">
+        <button data-act="score" data-team="away" data-pts="-1" aria-label="Away, subtract 1 point">&minus;1</button>
         <button data-act="score" data-team="away" data-pts="1" aria-label="Away, add 1 point">+1</button>
         <button data-act="score" data-team="away" data-pts="2" aria-label="Away, add 2 points">+2</button>
         <button data-act="score" data-team="away" data-pts="3" aria-label="Away, add 3 points">+3</button>
@@ -219,12 +221,12 @@
 
   .controls {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.4rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.35rem;
     margin-top: 0.5rem;
     margin-bottom: 0.2rem;
     width: 100%;
-    max-width: 11rem;
+    max-width: 13rem;
   }
 
   .controls button {
@@ -440,7 +442,7 @@
       const label = team === "home" ? "Home" : "Away";
 
       if (btn.dataset.act === "score") {
-        state.scores[team] += Number(btn.dataset.pts);
+        state.scores[team] = Math.max(0, state.scores[team] + Number(btn.dataset.pts));
         renderScores();
         announce(`${label} ${state.scores[team]} points`);
       } else if (btn.dataset.act === "foul") {
