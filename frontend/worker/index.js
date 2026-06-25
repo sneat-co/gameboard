@@ -13,13 +13,18 @@
 //   3. Set `Cross-Origin-Opener-Policy: same-origin-allow-popups` so Firebase
 //      `signInWithPopup` can postMessage its result back to the opener
 //      (REQ:popup-signin-baseline). MUST NOT be `same-origin`.
-//
-// Note: the `/__/auth/*` reverse proxy required by the optional
-// signInWithRedirect path (REQ:redirect-signin-optional) is NOT here — that
-// reserved path is at the apex (`/__/auth/*`), owned by the landing/root
-// deployment, and is only needed once redirect sign-in is enabled.
+//   4. Transparently reverse-proxy the Firebase reserved path `/__/auth/*`
+//      (route `gameboard.live/__/auth/*`) to the shared project's
+//      `<project>.firebaseapp.com` handler so sign-in works with
+//      `authDomain = gameboard.live` (REQ:redirect-signin-optional). The app
+//      is on Cloudflare, not Firebase Hosting, so these endpoints aren't served
+//      natively. This is a rewrite, NEVER a 3xx redirect.
 
 const PREFIX = '/app';
+
+// Shared Firebase project (backstage spec: shared-firebase-project).
+const FIREBASE_AUTH_HOST = 'sneat-eur3-1.firebaseapp.com';
+const AUTH_PREFIX = '/__/auth/';
 
 const RESPONSE_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
@@ -43,6 +48,16 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const original = url.pathname;
+
+    // Firebase Auth reserved path: transparently proxy to the project's
+    // firebaseapp.com handler (a rewrite, not a redirect). Pass the upstream
+    // response through unmodified — do NOT layer the app-shell headers on it.
+    if (original.startsWith(AUTH_PREFIX)) {
+      const target = new URL(request.url);
+      target.hostname = FIREBASE_AUTH_HOST;
+      target.port = '';
+      return fetch(new Request(target, request));
+    }
 
     // Strip the /app prefix for asset lookup. Exact `/app` and `/app/` map to
     // the app shell directly.

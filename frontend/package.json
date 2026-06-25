@@ -22,7 +22,7 @@
     "@ionic/core": "8.8.6",
     "@sneat/api": "0.9.0",
     "@sneat/app": "0.9.0",
-    "@sneat/auth-core": "0.9.0",
+    "@sneat/auth-core": "0.13.1",
     "@sneat/auth-models": "0.9.0",
     "@sneat/auth-ui": "0.9.0",
     "@sneat/contactus-core": "0.9.0",

@@ -17,6 +17,9 @@
   },
   "routes": [
     { "pattern": "gameboard.live/app", "zone_name": "gameboard.live" },
-    { "pattern": "gameboard.live/app/*", "zone_name": "gameboard.live" }
+    { "pattern": "gameboard.live/app/*", "zone_name": "gameboard.live" },
+    // Firebase Auth reserved path — transparently proxied to
+    // sneat-eur3-1.firebaseapp.com by the Worker (REQ:redirect-signin-optional).
+    { "pattern": "gameboard.live/__/auth/*", "zone_name": "gameboard.live" }
   ]
 }
