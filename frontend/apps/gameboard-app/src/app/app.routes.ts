@@ -28,6 +28,19 @@ export const appRoutes: Route[] = [
     data: { title: 'Scoreboard' },
   },
   {
+    // Public post-game recap — `g/:gameID/recap`.
+    // Intentionally NOT auth-guarded (decision 5: public/no-login).
+    // Renders the final score + minor-safe box score (points → assists) from
+    // the deterministic fold. Score-by-period and per-player minutes are
+    // deferred — those fields do not exist in the current GameState contract.
+    path: 'g/:gameID/recap',
+    loadComponent: () =>
+      import('./game/recap/recap-page.component').then(
+        (m) => m.RecapPageComponent,
+      ),
+    data: { title: 'Recap' },
+  },
+  {
     // Operator console (timekeeper + scorekeeper) — `g/:gameID/console`.
     // Intentionally NOT auth-guarded (decision 5): gameboardd's devIdentity
     // authorizes writes, so the console must be reachable and functional

@@ -267,6 +267,48 @@ export async function seedScoredGame(
   });
 }
 
+/**
+ * Seed the attributed-scoring game state used by the recap E2E. Appends
+ * `score` events with explicit `scorerID`/`assistID` so the fold populates
+ * `playerPoints`/`playerAssists`, then takes the game to `final`.
+ *
+ * Resulting fold:
+ *   p1: 4 pts (2× home +2 scorerID=p1), p2: 2 ast (same two events assistID=p2).
+ *   status = final.
+ *
+ * No subs are required — the box score is built from `playerPoints`/
+ * `playerAssists` in the fold, not from `onCourt`. The seeded game is
+ * purpose-built for the recap assertion (separate from `seedScoredGame`
+ * which populates the scoreboard fixture).
+ */
+export async function seedRecapGame(
+  request: APIRequestContext,
+  gameID: string,
+): Promise<void> {
+  // 1. Go live
+  await appendEvent(request, gameID, 'status', { status: 'live' });
+  await appendEvent(request, gameID, 'period', { period: 1 });
+
+  // 2. Two attributed home +2 events: p1 scores, p2 assists → p1=4pts, p2=2ast
+  await appendEvent(request, gameID, 'score', {
+    side: 'home',
+    points: 2,
+    scorerID: 'p1',
+    assistID: 'p2',
+    period: 1,
+  });
+  await appendEvent(request, gameID, 'score', {
+    side: 'home',
+    points: 2,
+    scorerID: 'p1',
+    assistID: 'p2',
+    period: 1,
+  });
+
+  // 3. Final
+  await appendEvent(request, gameID, 'status', { status: 'final' });
+}
+
 // ---------------------------------------------------------------------------
 // UI-driving lifecycle segment (real browser, NO mocking) — the reborn
 // full-game journey, ported from the legacy full-game.spec.ts.
