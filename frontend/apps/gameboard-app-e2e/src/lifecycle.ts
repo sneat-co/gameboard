@@ -39,6 +39,21 @@ export interface CreatedGame {
   status: string;
 }
 
+/**
+ * The full game record returned by GET /v0/api4gameboard/games/{id}.
+ * Mirrors the backend GameRecord JSON shape (gameID, home, away, scheduledMs,
+ * status, plus createdBy/createdAt from the platform CreatedFields mixin).
+ */
+export interface GameRecordWire {
+  gameID: string;
+  home: SideInput;
+  away: SideInput;
+  scheduledMs: number;
+  status: string;
+  createdBy?: string;
+  createdAt?: string;
+}
+
 /** The deterministic server fold returned by GET /v0/api4gameboard/games/{id}/state. */
 export interface GameStateWire {
   status: string;
@@ -71,6 +86,26 @@ export async function createGame(
   const body = (await res.json()) as CreatedGame;
   expect(body.gameID, 'created game must have a gameID').toBeTruthy();
   return body;
+}
+
+/**
+ * Read the persisted game record back from the Firestore emulator.
+ * `GET /v0/api4gameboard/games/{id}` — public/no-login.
+ * Asserts the returned record's sides and scheduledMs equal what was created
+ * (no drift between create request and persisted document).
+ */
+export async function getGame(
+  request: APIRequestContext,
+  gameID: string,
+): Promise<GameRecordWire> {
+  const res = await request.get(
+    `/v0/api4gameboard/games/${encodeURIComponent(gameID)}`,
+  );
+  expect(
+    res.ok(),
+    `get game failed: ${res.status()} ${await res.text()}`,
+  ).toBeTruthy();
+  return (await res.json()) as GameRecordWire;
 }
 
 /**
