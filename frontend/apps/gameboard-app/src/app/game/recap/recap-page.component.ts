@@ -32,11 +32,10 @@ import {
  * `app.component.ts` and the `recap.spec.ts` assertions.
  *
  * Design decisions (logged as required):
- *   - One-shot load on route resolve: recap is a post-game view; a periodic
- *     poll is unnecessary once `status=final`. The page does a single `getState`
- *     on mount (via the gameID effect) and exposes a manual reload on error.
- *     A future enhancement could add a brief poll to handle the edge case where
- *     the browser arrives before the final event is fully folded.
+ *   - Polls at 2 s interval (same as scoreboard, decision 8 consistency): handles
+ *     the edge case where the browser arrives before the final event is fully
+ *     folded. An initial `getState` fires immediately on route resolve (via the
+ *     gameID effect); the interval keeps the view live until `status=final`.
  *   - Score-by-period OMITTED: `GameState` has no per-period breakdown field.
  *     Deferred — not in the contract; adding it would require a contract change.
  *   - Per-player minutes OMITTED: `GameState` has no `playerMinutes` field.
@@ -121,7 +120,7 @@ export class RecapPageComponent {
     { initialValue: '' },
   );
 
-  /** Server-folded state; loaded once on mount (one-shot for a final recap). */
+  /** Server-folded state; refreshed every 2 s (polls until final fold arrives). */
   protected readonly state = signal<GameState>(emptyState());
 
   constructor() {

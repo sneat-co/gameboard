@@ -14,6 +14,12 @@ import {
  * True when an error is SneatApiService's "no Firebase ID token" guard — the
  * synchronous rejection it raises from post/put/get when there is no signed-in
  * session (it refuses to send the request rather than returning a backend 401).
+ *
+ * The substring "not authenticated" matches the literal string thrown by
+ * `@sneat/api`'s `errorIfNotAuthenticated()`:
+ *   "User is not authenticated yet - no Firebase ID token"
+ * If that wording ever changes in the library the full-game E2E (follow.spec.ts)
+ * will fail loudly, surfacing the mismatch before it reaches production.
  */
 function isNotAuthenticatedError(err: unknown): boolean {
   return typeof err === 'string' && err.includes('not authenticated');

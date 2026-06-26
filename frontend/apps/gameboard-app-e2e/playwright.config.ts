@@ -42,7 +42,13 @@ export default defineConfig({
   },
   webServer: {
     command:
-      'pnpm exec nx build gameboard-app' +
+      // Guard: real-stack E2E requires the Firestore emulator. Fail fast with a
+      // clear message rather than silently running against the in-memory store.
+      // This check runs only in the webServer shell; `nx serve` / dev paths are
+      // unaffected because they do not go through this config.
+      '[ -n "$FIRESTORE_EMULATOR_HOST" ]' +
+      ' || { echo "Real-stack E2E requires FIRESTORE_EMULATOR_HOST — run via: firebase emulators:exec --only firestore --project demo-gameboard \'...\'" >&2; exit 1; }' +
+      ' && pnpm exec nx build gameboard-app' +
       ' && rm -rf dist/apps/gameboard-app/e2e-static' +
       ' && mkdir -p dist/apps/gameboard-app/e2e-static' +
       ' && ln -s ../browser dist/apps/gameboard-app/e2e-static/app' +

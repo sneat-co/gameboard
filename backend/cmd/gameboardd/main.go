@@ -30,10 +30,15 @@ const defaultEmulatorProject = "demo-gameboard"
 // Firestore-backed dalgo DB — the firestore client auto-detects the emulator
 // from that env var. Otherwise it keeps the in-memory default. The Service and
 // store logic are identical regardless of adapter (config swap, same store).
-func newStore(ctx context.Context) (gameboard.EventStore, error) {
+//
+// The returned cleanup func must be deferred by the caller; for the in-memory
+// adapter it is a no-op, for Firestore it closes the client.
+func newStore(ctx context.Context) (gameboard.EventStore, func(), error) {
 	if os.Getenv("FIRESTORE_EMULATOR_HOST") == "" {
-		return gameboard.NewDalgoStore(dalgo2memory.NewDB()), nil
+		log.Printf("gameboardd store=memory (in-process)")
+		return gameboard.NewDalgoStore(dalgo2memory.NewDB()), func() {}, nil
 	}
+	log.Printf("gameboardd store=firestore-emulator (FIRESTORE_EMULATOR_HOST=%s)", os.Getenv("FIRESTORE_EMULATOR_HOST"))
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
 		projectID = os.Getenv("GCLOUD_PROJECT")
@@ -43,10 +48,10 @@ func newStore(ctx context.Context) (gameboard.EventStore, error) {
 	}
 	client, err := firestore.NewClient(ctx, projectID)
 	if err != nil {
-		return nil, err
+		return nil, func() {}, err
 	}
 	var db dal.DB = dalgo2firestore.NewDatabase(projectID, client)
-	return gameboard.NewDalgoStore(db), nil
+	return gameboard.NewDalgoStore(db), func() { _ = client.Close() }, nil
 }
 
 // devIdentity is a DEV-ONLY UserIdentity for the local gameboardd server (and
@@ -69,10 +74,11 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	store, err := newStore(context.Background())
+	store, cleanup, err := newStore(context.Background())
 	if err != nil {
 		log.Fatalf("gameboardd: failed to init store: %v", err)
 	}
+	defer cleanup()
 	gameboard.NewHandler(gameboard.NewService(store), devIdentity{}).Register(mux)
 
 	// Optionally serve a built SPA (used by the Playwright E2E for same-origin —

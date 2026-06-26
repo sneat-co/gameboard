@@ -128,7 +128,7 @@ export class ScoreboardPageComponent {
    * (decision 2). The signed-in→following path is unit-tested (decision 10);
    * the real backend-401 fidelity is deferred to a real Auth-emulator sign-in.
    */
-  public async followHome(): Promise<void> {
+  protected async followHome(): Promise<void> {
     try {
       await this.gameService.follow('team', `${this.gameID()}:home`);
       this.followStatus.set('following');
