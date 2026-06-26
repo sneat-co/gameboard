@@ -1,4 +1,4 @@
-import { APIRequestContext, expect } from '@playwright/test';
+import { APIRequestContext, expect, Page } from '@playwright/test';
 
 /**
  * Real-stack lifecycle helpers for the gameboard game-screens E2E.
@@ -265,4 +265,89 @@ export async function seedScoredGame(
     playerOn: 'p2',
     period: 1,
   });
+}
+
+// ---------------------------------------------------------------------------
+// UI-driving lifecycle segment (real browser, NO mocking) — the reborn
+// full-game journey, ported from the legacy full-game.spec.ts.
+// ---------------------------------------------------------------------------
+
+/**
+ * The deterministic fold produced by {@link driveFullGameViaConsole}, so the
+ * umbrella / public-scoreboard assertions can reference one canonical fixture.
+ *
+ *   home = +2 +3 +1 (FT) +2 (attributed p1/p2) = 8
+ *   away = +2 = 2; away fouls = 5 → home bonus; possession = away; status final.
+ */
+export const FULL_GAME_FOLD = {
+  scoreHome: 8,
+  scoreAway: 2,
+  awayFouls: 5,
+  possession: 'away',
+  status: 'final',
+} as const;
+
+/**
+ * Drive the REAL operator console UI at `/app/g/<gameID>/console` through a full
+ * game lifecycle — go-live → period → clock → score (incl. the attributed
+ * `home-2-by-p1`) → 5 away fouls→bonus → subs → timeout → possession → final —
+ * clicking the actual Ionic controls (no `page.route`/mocking). Each click is a
+ * real append through gameboardd → Firestore emulator; the embedded scoreboard
+ * re-reads the fold, so the on-surface assertions prove board == fold at each
+ * step. Exposed here so the umbrella spec can reuse the exact journey.
+ */
+export async function driveFullGameViaConsole(
+  page: Page,
+  gameID: string,
+): Promise<void> {
+  await page.goto(`/app/g/${gameID}/console`);
+
+  // 1–2. tip-off: go live, period 1, start the clock (legacy 600000 = 10:00)
+  await page.getByTestId('go-live').click();
+  await expect(page.getByTestId('status')).toHaveText('live');
+  await page.getByTestId('period-1').click();
+  await expect(page.getByTestId('period')).toHaveText('1');
+  await page.getByTestId('clock-start').click();
+  await expect(page.getByTestId('clock-running')).toHaveText('▶');
+  await expect(page.getByTestId('clock')).toHaveText('10:00');
+
+  // 3. scoring: home +2, +3, FT, and the attributed +2 (p1, assist p2) = 8;
+  //    away +2 = 2
+  await page.getByTestId('home-2').click();
+  await page.getByTestId('home-3').click();
+  await page.getByTestId('home-ft').click();
+  await page.getByTestId('home-2-by-p1').click();
+  await page.getByTestId('away-2').click();
+  await expect(page.getByTestId('score-home')).toHaveText(
+    String(FULL_GAME_FOLD.scoreHome),
+  );
+  await expect(page.getByTestId('score-away')).toHaveText(
+    String(FULL_GAME_FOLD.scoreAway),
+  );
+
+  // 4. fouls: away commits 5 → home bonus flips
+  for (let i = 0; i < FULL_GAME_FOLD.awayFouls; i++) {
+    await page.getByTestId('away-foul').click();
+  }
+  await expect(page.getByTestId('home-bonus')).toBeVisible();
+
+  // 5–7. substitutions (p1 adult, p2 no-consent minor, p3 consented minor),
+  // timeout, possession
+  await page.getByTestId('sub-home').click();
+  await page.getByTestId('sub-home').click();
+  await page.getByTestId('sub-home').click();
+  await page.getByTestId('timeout-home').click();
+  await page.getByTestId('possession-away').click();
+  await expect(page.getByTestId('possession')).toHaveText('away');
+
+  // minor-safe public rendering: the no-consent minor (p2) shows by jersey only.
+  const onCourt = page.getByTestId('oncourt-home');
+  await expect(onCourt).toContainText('#23'); // Jordan Minor → jersey only
+  await expect(onCourt).not.toContainText('Jordan Minor');
+  await expect(onCourt).toContainText('Alex Adult'); // adult shows name
+  await expect(onCourt).toContainText('Sam Consented'); // consented minor shows name
+
+  // 8. final
+  await page.getByTestId('final').click();
+  await expect(page.getByTestId('status')).toHaveText('final');
 }

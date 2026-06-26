@@ -15,6 +15,23 @@ describe('appRoutes', () => {
     expect(root?.canActivate ?? []).toHaveLength(0);
   });
 
+  it('serves the public scoreboard at g/:gameID without an auth guard', () => {
+    const sb = appRoutes.find((r) => r.path === 'g/:gameID');
+    expect(sb).toBeDefined();
+    expect(sb?.canActivate ?? []).toHaveLength(0);
+    expect(typeof sb?.loadComponent).toBe('function');
+  });
+
+  it('serves the operator console at g/:gameID/console WITHOUT an auth guard', () => {
+    // Decision 5 + E2E requirement: the console must be reachable without a
+    // signed-in session so the real-stack E2E (devIdentity-authorized writes)
+    // can drive the full lifecycle. An AuthGuard redirect would break the chain.
+    const console = appRoutes.find((r) => r.path === 'g/:gameID/console');
+    expect(console).toBeDefined();
+    expect(console?.canActivate ?? []).toHaveLength(0);
+    expect(typeof console?.loadComponent).toBe('function');
+  });
+
   it('auth-guards the /my profile route', () => {
     const my = appRoutes.find((r) => r.path === 'my');
     expect(my?.canActivate?.length).toBeGreaterThan(0);
@@ -22,9 +39,7 @@ describe('appRoutes', () => {
   });
 
   it('mounts the space-scoped routes lazily', () => {
-    const space = appRoutes.find(
-      (r) => r.path === 'space/:spaceType/:spaceID',
-    );
+    const space = appRoutes.find((r) => r.path === 'space/:spaceType/:spaceID');
     expect(space).toBeDefined();
     expect(typeof space?.loadChildren).toBe('function');
   });

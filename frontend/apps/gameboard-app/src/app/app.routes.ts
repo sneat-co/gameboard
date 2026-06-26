@@ -28,6 +28,22 @@ export const appRoutes: Route[] = [
     data: { title: 'Scoreboard' },
   },
   {
+    // Operator console (timekeeper + scorekeeper) — `g/:gameID/console`.
+    // Intentionally NOT auth-guarded (decision 5): gameboardd's devIdentity
+    // authorizes writes, so the console must be reachable and functional
+    // WITHOUT a real signed-in session for the real-stack E2E to drive the full
+    // lifecycle (an AuthGuard redirecting anonymous users to /login would break
+    // the chain). No role-gating UI; any future sign-in affordance stays
+    // non-blocking like new-game. Authenticated-write fidelity is a
+    // prod/sneat-go concern.
+    path: 'g/:gameID/console',
+    loadComponent: () =>
+      import('./game/console/console-page.component').then(
+        (m) => m.ConsolePageComponent,
+      ),
+    data: { title: 'Console' },
+  },
+  {
     // New game — the on-ramp to a GameBoard.live game.
     // Anonymous-first (anon-first-new-game Feature): intentionally NOT
     // auth-guarded so a first-time/anonymous visitor can fill the form with zero

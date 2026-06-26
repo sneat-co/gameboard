@@ -11,6 +11,15 @@ import {
 } from './game/game-state';
 
 /**
+ * True when an error is SneatApiService's "no Firebase ID token" guard — the
+ * synchronous rejection it raises from post/put/get when there is no signed-in
+ * session (it refuses to send the request rather than returning a backend 401).
+ */
+function isNotAuthenticatedError(err: unknown): boolean {
+  return typeof err === 'string' && err.includes('not authenticated');
+}
+
+/**
  * GameService is the single client for the gameboard game API. It calls through
  * SneatApiService so every request carries the signed-in user's Firebase ID
  * token (Authorization: Bearer …), the same way the sneat & lists apps do — the
@@ -45,20 +54,35 @@ export class GameService {
   }
 
   /**
-   * Append a fully-built event to a game's append-only log (authenticated;
-   * SneatApiService attaches the Firebase token). `POST .../games/{id}/events`.
-   * Idempotent on event.eventID. Prefer append() for the typed convenience.
+   * Append a fully-built event to a game's append-only log.
+   * `POST .../games/{id}/events`. Idempotent on event.eventID.
+   *
+   * Signed-in users write authenticated (SneatApiService attaches the Firebase
+   * token — decision 2). When there is NO session, SneatApiService.post refuses
+   * to send the request (it throws "User is not authenticated…" before any
+   * network call); in that case we retry with postAsAnonymous so the write still
+   * reaches the backend. This is what makes the operator console usable without
+   * a real signed-in session: gameboardd's devIdentity authorizes the write
+   * (and it lets the real-stack E2E drive the full lifecycle). Production stays
+   * authenticated for signed-in operators; only a token-less session falls back.
+   *
+   * Prefer append() for the typed convenience.
    */
-  public appendEvent(
+  public async appendEvent(
     gameID: string,
     event: GameEvent,
   ): Promise<AppendResponse> {
-    return firstValueFrom(
-      this.api.post<AppendResponse>(
-        `api4gameboard/games/${encodeURIComponent(gameID)}/events`,
-        event,
-      ),
-    );
+    const path = `api4gameboard/games/${encodeURIComponent(gameID)}/events`;
+    try {
+      return await firstValueFrom(this.api.post<AppendResponse>(path, event));
+    } catch (err) {
+      if (!isNotAuthenticatedError(err)) {
+        throw err;
+      }
+      return firstValueFrom(
+        this.api.postAsAnonymous<AppendResponse>(path, event),
+      );
+    }
   }
 
   /**
