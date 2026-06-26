@@ -84,6 +84,9 @@ export async function getState(
   const res = await request.get(
     `/v0/api4gameboard/games/${encodeURIComponent(gameID)}/state`,
   );
-  expect(res.ok(), `get state failed: ${res.status()} ${await res.text()}`).toBeTruthy();
+  expect(
+    res.ok(),
+    `get state failed: ${res.status()} ${await res.text()}`,
+  ).toBeTruthy();
   return (await res.json()) as GameStateWire;
 }

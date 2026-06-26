@@ -1,14 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { inBonus, newEventID, publicPlayerLabel, sourceFor, type GameState, type Player } from './game-state';
+import {
+  inBonus,
+  newEventID,
+  publicPlayerLabel,
+  sourceFor,
+  type GameState,
+  type Player,
+} from './game-state';
 
 function state(home: number, away: number): GameState {
   return {
-    status: 'live', period: 1, gameClockMs: 0, clockRunning: true,
+    status: 'live',
+    period: 1,
+    gameClockMs: 0,
+    clockRunning: true,
     scores: { home: 0, away: 0 },
     teamFouls: { home, away },
     timeoutsUsed: { home: 0, away: 0 },
-    possession: '', onCourt: { home: [], away: [] },
-    playerPoints: {}, playerAssists: {},
+    possession: '',
+    onCourt: { home: [], away: [] },
+    playerPoints: {},
+    playerAssists: {},
   };
 }
 
@@ -38,9 +50,17 @@ describe('contract helpers', () => {
   });
 
   it('publicPlayerLabel hides a no-consent minor behind their jersey number', () => {
-    const base: Player = { id: 'x', jersey: '23', name: 'Jordan Minor', isMinor: true, publishConsent: false };
+    const base: Player = {
+      id: 'x',
+      jersey: '23',
+      name: 'Jordan Minor',
+      isMinor: true,
+      publishConsent: false,
+    };
     expect(publicPlayerLabel(base)).toBe('#23'); // minor, no consent → jersey only
-    expect(publicPlayerLabel({ ...base, publishConsent: true })).toBe('Jordan Minor'); // minor w/ consent → name
+    expect(publicPlayerLabel({ ...base, publishConsent: true })).toBe(
+      'Jordan Minor',
+    ); // minor w/ consent → name
     expect(publicPlayerLabel({ ...base, isMinor: false })).toBe('Jordan Minor'); // adult → name
   });
 });

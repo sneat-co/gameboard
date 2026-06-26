@@ -24,9 +24,16 @@ test('anonymous "Create game" routes through sign-in and writes nothing', async 
     timeout: 20_000,
   });
 
-  // Fill required fields so the create button enables.
-  await page.locator('ion-input[label="Home team"] input').fill('Limerick Celtics');
+  // Step 1 — pick a sport; the rest of the form stays hidden until one is chosen.
+  await page.getByRole('button', { name: /Basketball/ }).click();
+
+  // Fill the required fields (two team names + at least one self-declared role)
+  // so the form is valid and create proceeds to the auth gate.
+  await page
+    .locator('ion-input[label="Home team"] input')
+    .fill('Limerick Celtics');
   await page.locator('ion-input[label="Away team"] input').fill('Ennis Tigers');
+  await page.getByText('Coach', { exact: true }).click();
 
   const create = page.getByRole('button', { name: /Create game/ });
   await expect(create).toBeEnabled();

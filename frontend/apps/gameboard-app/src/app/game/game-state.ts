@@ -13,10 +13,23 @@
 import { TeamSide } from '../new-game/game-contract';
 
 export type EventType =
-  | 'status' | 'period' | 'clock' | 'score' | 'team-foul'
-  | 'timeout' | 'substitution' | 'possession' | 'judge-ruling' | 'correction';
+  | 'status'
+  | 'period'
+  | 'clock'
+  | 'score'
+  | 'team-foul'
+  | 'timeout'
+  | 'substitution'
+  | 'possession'
+  | 'judge-ruling'
+  | 'correction';
 export type GameStatus =
-  | 'scheduled' | 'live' | 'halftime' | 'overtime' | 'final' | 'cancelled';
+  | 'scheduled'
+  | 'live'
+  | 'halftime'
+  | 'overtime'
+  | 'final'
+  | 'cancelled';
 export type ClockAction = 'start' | 'stop' | 'adjust';
 export type Source = 'scorekeeper' | 'timekeeper' | 'judge' | 'consensus';
 
@@ -120,7 +133,10 @@ export function newEventID(): string {
  * defaulting to 0 — each only when not already supplied. This is the ONE
  * payload-building code path; GameService.append() and console callers both go
  * through it. */
-export function buildEvent(type: EventType, payload: Partial<GameEvent> = {}): GameEvent {
+export function buildEvent(
+  type: EventType,
+  payload: Partial<GameEvent> = {},
+): GameEvent {
   return {
     eventID: payload.eventID ?? newEventID(),
     type,

@@ -15,6 +15,9 @@ test('new-game form auto-saves a draft and restores it after reload', async ({
     timeout: 20_000,
   });
 
+  // Step 1 — pick a sport to reveal the form (the pick is part of the draft).
+  await page.getByRole('button', { name: /Basketball/ }).click();
+
   const home = page.locator('ion-input[label="Home team"] input');
   const away = page.locator('ion-input[label="Away team"] input');
 

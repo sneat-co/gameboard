@@ -30,9 +30,17 @@ export class GameService {
    * UI but not yet accepted by the backend; only home/away/scheduledMs are sent.
    * The returned record's `.id` is the gameID for subsequent calls.
    */
-  public createGame(home: Side, away: Side, scheduledMs = 0): Promise<GameRecord> {
+  public createGame(
+    home: Side,
+    away: Side,
+    scheduledMs = 0,
+  ): Promise<GameRecord> {
     return firstValueFrom(
-      this.api.post<GameRecord>('api4gameboard/games', { home, away, scheduledMs }),
+      this.api.post<GameRecord>('api4gameboard/games', {
+        home,
+        away,
+        scheduledMs,
+      }),
     );
   }
 
@@ -41,7 +49,10 @@ export class GameService {
    * SneatApiService attaches the Firebase token). `POST .../games/{id}/events`.
    * Idempotent on event.eventID. Prefer append() for the typed convenience.
    */
-  public appendEvent(gameID: string, event: GameEvent): Promise<AppendResponse> {
+  public appendEvent(
+    gameID: string,
+    event: GameEvent,
+  ): Promise<AppendResponse> {
     return firstValueFrom(
       this.api.post<AppendResponse>(
         `api4gameboard/games/${encodeURIComponent(gameID)}/events`,
