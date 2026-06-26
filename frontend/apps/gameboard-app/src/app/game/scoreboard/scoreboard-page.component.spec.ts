@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 import { GameService } from '../../game.service';
 import type { GameState } from '../game-state';
 import { ScoreboardPageComponent } from './scoreboard-page.component';
@@ -27,13 +28,16 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
 }
 
 /** Configure TestBed for ScoreboardPageComponent with the given state and
- *  optional query params. The gameID param is always 'test-game-1'. */
+ *  optional query params. The gameID param is always 'test-game-1'.
+ *  Pass a `follow` stub to override the default no-op (used by follow tests). */
 function configure(
   state: GameState,
   queryParams: Record<string, string> = {},
+  followStub?: () => Promise<unknown>,
 ): void {
   const mockGameService = {
     getState: () => Promise.resolve(state),
+    follow: followStub ?? (() => Promise.resolve()),
   };
 
   TestBed.configureTestingModule({
@@ -246,6 +250,88 @@ describe('ScoreboardPageComponent', () => {
       const host = fixture.nativeElement as HTMLElement;
       const board = host.querySelector('[data-testid="scoreboard"]');
       expect(board?.classList.contains('big')).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Follow control (decision 10): unit-tested with a stubbed GameService.
+  //
+  // The legacy account-id input is OMITTED — superseded by Firebase-token auth
+  // (decision 2). The signed-in→following path is tested here via stub; the
+  // anonymous→rejected path is the real-stack E2E (follow.spec.ts). Real
+  // backend-401 fidelity is deferred to a real Auth-emulator sign-in.
+  // ---------------------------------------------------------------------------
+  describe('follow control', () => {
+    it('renders the follow-home button and an empty follow-status', async () => {
+      configure(makeState());
+      const fixture = TestBed.createComponent(ScoreboardPageComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const host = fixture.nativeElement as HTMLElement;
+      expect(
+        host.querySelector('[data-testid="follow-home"]'),
+        'follow-home button must be present',
+      ).toBeTruthy();
+      expect(
+        host
+          .querySelector('[data-testid="follow-status"]')
+          ?.textContent?.trim(),
+      ).toBe('');
+    });
+
+    it('shows "following" when GameService.follow resolves (signed-in path)', async () => {
+      const follow = vi.fn().mockResolvedValue(undefined);
+      configure(makeState(), {}, follow);
+      const fixture = TestBed.createComponent(ScoreboardPageComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const host = fixture.nativeElement as HTMLElement;
+      const btn = host.querySelector<HTMLElement>(
+        '[data-testid="follow-home"]',
+      );
+      expect(btn, 'follow-home must exist').toBeTruthy();
+      btn?.click();
+      // Settle the async followHome() promise.
+      await Promise.resolve();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(
+        host
+          .querySelector('[data-testid="follow-status"]')
+          ?.textContent?.trim(),
+      ).toBe('following');
+    });
+
+    it('shows "account required" when GameService.follow rejects (anonymous path)', async () => {
+      const follow = vi
+        .fn()
+        .mockRejectedValue('User is not authenticated — no Firebase session');
+      configure(makeState(), {}, follow);
+      const fixture = TestBed.createComponent(ScoreboardPageComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const host = fixture.nativeElement as HTMLElement;
+      const btn = host.querySelector<HTMLElement>(
+        '[data-testid="follow-home"]',
+      );
+      expect(btn, 'follow-home must exist').toBeTruthy();
+      btn?.click();
+      // Settle the async followHome() promise (including the rejected branch).
+      await Promise.resolve();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(
+        host
+          .querySelector('[data-testid="follow-status"]')
+          ?.textContent?.trim(),
+      ).toBe('account required');
     });
   });
 });
