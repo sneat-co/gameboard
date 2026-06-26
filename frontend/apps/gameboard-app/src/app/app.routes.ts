@@ -16,6 +16,47 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    // Public scoreboard — the read-only game display for spectators and display
+    // boards. Intentionally NOT auth-guarded (decision 5: public/no-login).
+    // `?display=big` enables the dark "scoreboard moment" layout (tokens
+    // --gb-score-bg / --gb-clock / --gb-font-score).
+    path: 'g/:gameID',
+    loadComponent: () =>
+      import('./game/scoreboard/scoreboard-page.component').then(
+        (m) => m.ScoreboardPageComponent,
+      ),
+    data: { title: 'Scoreboard' },
+  },
+  {
+    // Public post-game recap — `g/:gameID/recap`.
+    // Intentionally NOT auth-guarded (decision 5: public/no-login).
+    // Renders the final score + minor-safe box score (points → assists) from
+    // the deterministic fold. Score-by-period and per-player minutes are
+    // deferred — those fields do not exist in the current GameState contract.
+    path: 'g/:gameID/recap',
+    loadComponent: () =>
+      import('./game/recap/recap-page.component').then(
+        (m) => m.RecapPageComponent,
+      ),
+    data: { title: 'Recap' },
+  },
+  {
+    // Operator console (timekeeper + scorekeeper) — `g/:gameID/console`.
+    // Intentionally NOT auth-guarded (decision 5): gameboardd's devIdentity
+    // authorizes writes, so the console must be reachable and functional
+    // WITHOUT a real signed-in session for the real-stack E2E to drive the full
+    // lifecycle (an AuthGuard redirecting anonymous users to /login would break
+    // the chain). No role-gating UI; any future sign-in affordance stays
+    // non-blocking like new-game. Authenticated-write fidelity is a
+    // prod/sneat-go concern.
+    path: 'g/:gameID/console',
+    loadComponent: () =>
+      import('./game/console/console-page.component').then(
+        (m) => m.ConsolePageComponent,
+      ),
+    data: { title: 'Console' },
+  },
+  {
     // New game — the on-ramp to a GameBoard.live game.
     // Anonymous-first (anon-first-new-game Feature): intentionally NOT
     // auth-guarded so a first-time/anonymous visitor can fill the form with zero
@@ -34,7 +75,9 @@ export const appRoutes: Route[] = [
     // space/:spaceType/:spaceID mount point.
     path: 'space/:spaceType/:spaceID',
     loadChildren: () =>
-      import('./space/gameboard-space.routes').then((m) => m.templateSpaceRoutes),
+      import('./space/gameboard-space.routes').then(
+        (m) => m.templateSpaceRoutes,
+      ),
   },
   {
     // sneat-auth-menu-item navigates here on sign-out; mirror sneat-app and
@@ -52,6 +95,9 @@ export const appRoutes: Route[] = [
         (m) => m.MyProfilePageComponent,
       ),
     canActivate: [AuthGuard],
-    data: { title: 'My profile', authGuardPipe: () => redirectToLoginIfNotSignedIn },
+    data: {
+      title: 'My profile',
+      authGuardPipe: () => redirectToLoginIfNotSignedIn,
+    },
   },
 ];

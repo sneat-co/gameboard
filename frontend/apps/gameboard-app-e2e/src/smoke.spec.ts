@@ -1,16 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 // Smoke scope (per decision): assert the app boots and routes resolve without
-// crashing. Full "renders authenticated data" needs a signed-in session +
-// seeded space (deferred), so an unauthenticated redirect to /login is the
-// expected, asserted path.
+// crashing.
 //
-// The app is served under the `/app` prefix (baseHref `/app/`) by Caddy with
-// SPA history fallback — see apps/gameboard-app-e2e/Caddyfile and
-// playwright.config.ts. That mirrors the production Cloudflare Worker, so deep
-// links below get the app shell instead of a 404.
+// The app is served under the `/app` prefix (baseHref `/app/`) same-origin by
+// gameboardd with SPA history fallback — see playwright.config.ts. That mirrors
+// the production Cloudflare Worker, so deep links below get the app shell
+// instead of a 404.
 
-test('app boots at /app/ and redirects unauthenticated user to login', async ({
+test('app boots at /app/ and renders the public home for an anonymous user', async ({
   page,
 }) => {
   const pageErrors: string[] = [];
@@ -21,8 +19,16 @@ test('app boots at /app/ and redirects unauthenticated user to login', async ({
   // Angular bootstrapped and rendered the app shell.
   await expect(page.locator('gameboard-root')).toBeAttached();
 
-  // Bootstrap + router + auth all work: root redirects to the login route.
-  await page.waitForURL(/login/, { timeout: 20_000 });
+  // The home route '' is intentionally PUBLIC (anon-first): an anonymous visitor
+  // lands on the home page with a New game CTA — NOT redirected to /login.
+  // (The CTA is an <ion-button routerLink="/new-game">, which Ionic renders as a
+  // link, so match it by element + text rather than the button role.)
+  await expect(page.locator('gameboard-home-page')).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(
+    page.locator('ion-button', { hasText: 'New game' }),
+  ).toBeVisible();
 
   expect(pageErrors, `uncaught page errors:\n${pageErrors.join('\n')}`).toEqual(
     [],

@@ -15,6 +15,9 @@ test('sign-in affordance is shown and does not block editing', async ({
     timeout: 20_000,
   });
 
+  // Step 1 — pick a sport to reveal the form (and its sign-in affordance).
+  await page.getByRole('button', { name: /Basketball/ }).click();
+
   // Affordance present for an anonymous user.
   const signIn = page.getByRole('button', { name: 'Sign in' });
   await expect(signIn).toBeVisible();
@@ -33,7 +36,12 @@ test('signing in mid-form returns to /new-game with the draft intact', async ({
     timeout: 20_000,
   });
 
-  await page.locator('ion-input[label="Home team"] input').fill('Limerick Celtics');
+  // Step 1 — pick a sport to reveal the form (the pick is part of the draft).
+  await page.getByRole('button', { name: /Basketball/ }).click();
+
+  await page
+    .locator('ion-input[label="Home team"] input')
+    .fill('Limerick Celtics');
   await page.locator('ion-input[label="Away team"] input').fill('Ennis Tigers');
 
   // Trigger sign-in: navigates to the login route with /new-game as the
