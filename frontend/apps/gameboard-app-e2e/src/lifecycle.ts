@@ -23,6 +23,35 @@ import { APIRequestContext, expect } from '@playwright/test';
  * these E2E primitives. Reads (GET /state) are public.
  */
 
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/** Canonical source for each event type (mirrors game-state.ts sourceFor). */
+function sourceFor(type: string): string {
+  switch (type) {
+    case 'score':
+    case 'team-foul':
+    case 'substitution':
+      return 'scorekeeper';
+    case 'clock':
+    case 'period':
+    case 'possession':
+    case 'timeout':
+    case 'status':
+      return 'timekeeper';
+    default:
+      return 'judge';
+  }
+}
+
+/** Random dashless 32-char hex id — the wire format for event ids. */
+function newEventID(): string {
+  const buf = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(buf);
+  return Array.from(buf, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** Inline team descriptor for a side (matches the api4gameboard wire contract). */
 export interface SideInput {
   name: string;
@@ -124,4 +153,116 @@ export async function getState(
     `get state failed: ${res.status()} ${await res.text()}`,
   ).toBeTruthy();
   return (await res.json()) as GameStateWire;
+}
+
+/**
+ * Append a single event to a game's log through the real chain
+ * (gameboardd → dalgo → Firestore emulator). Builds the required envelope
+ * fields (`eventID`, `source`, `wallClockMs`) automatically; callers supply
+ * only the domain payload (`type` + any type-specific fields).
+ *
+ * Slice 2 introduces this primitive so that the scoreboard E2E can seed a
+ * deterministic game state without going through the browser UI.
+ */
+export async function appendEvent(
+  request: APIRequestContext,
+  gameID: string,
+  type: string,
+  payload: Record<string, unknown> = {},
+): Promise<void> {
+  const event = {
+    eventID: newEventID(),
+    type,
+    source: sourceFor(type),
+    wallClockMs: Date.now(),
+    period: 0,
+    gameClockMs: 0,
+    ...payload,
+  };
+  const res = await request.post(
+    `/v0/api4gameboard/games/${encodeURIComponent(gameID)}/events`,
+    { data: event },
+  );
+  expect(
+    res.ok(),
+    `append '${type}' failed: ${res.status()} ${await res.text()}`,
+  ).toBeTruthy();
+}
+
+/**
+ * Seed a scored game state through the real chain. Seeds the events that
+ * produce the canonical scoreboard fixture used by Slice 2+ E2E assertions:
+ *
+ *   status=live, period=1, clock started at 10:00 and stopped at 9:00,
+ *   home +2/+3/FT (=6), away +2 (=2), 5 away fouls → home bonus,
+ *   possession=away, home subs p1 (adult) and p2 (no-consent minor) on court.
+ *
+ * The returned partial state lets callers assert fold equality without
+ * re-reading GET /state themselves (though they may also call getState).
+ *
+ * Later slices should extend this chain (timeouts, sub-swap, final, …) rather
+ * than duplicating the setup.
+ */
+export async function seedScoredGame(
+  request: APIRequestContext,
+  gameID: string,
+): Promise<void> {
+  // 1. Tip-off
+  await appendEvent(request, gameID, 'status', { status: 'live' });
+  await appendEvent(request, gameID, 'period', { period: 1 });
+  await appendEvent(request, gameID, 'clock', {
+    clockAction: 'start',
+    gameClockMs: 600000,
+    period: 1,
+  });
+  await appendEvent(request, gameID, 'clock', {
+    clockAction: 'stop',
+    gameClockMs: 540000,
+    period: 1,
+  });
+
+  // 2. Scoring: home +2, +3, FT (=6); away +2 (=2)
+  await appendEvent(request, gameID, 'score', {
+    side: 'home',
+    points: 2,
+    period: 1,
+  });
+  await appendEvent(request, gameID, 'score', {
+    side: 'home',
+    points: 3,
+    period: 1,
+  });
+  await appendEvent(request, gameID, 'score', {
+    side: 'home',
+    points: 1,
+    period: 1,
+  });
+  await appendEvent(request, gameID, 'score', {
+    side: 'away',
+    points: 2,
+    period: 1,
+  });
+
+  // 3. Away fouls ×5 → home enters bonus
+  for (let i = 0; i < 5; i++) {
+    await appendEvent(request, gameID, 'team-foul', {
+      side: 'away',
+      period: 1,
+    });
+  }
+
+  // 4. Possession to away
+  await appendEvent(request, gameID, 'possession', { side: 'away', period: 1 });
+
+  // 5. Home subs: p1 (adult) and p2 (no-consent minor) on court
+  await appendEvent(request, gameID, 'substitution', {
+    side: 'home',
+    playerOn: 'p1',
+    period: 1,
+  });
+  await appendEvent(request, gameID, 'substitution', {
+    side: 'home',
+    playerOn: 'p2',
+    period: 1,
+  });
 }

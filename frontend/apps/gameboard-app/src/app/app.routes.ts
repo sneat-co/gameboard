@@ -16,6 +16,18 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    // Public scoreboard — the read-only game display for spectators and display
+    // boards. Intentionally NOT auth-guarded (decision 5: public/no-login).
+    // `?display=big` enables the dark "scoreboard moment" layout (tokens
+    // --gb-score-bg / --gb-clock / --gb-font-score).
+    path: 'g/:gameID',
+    loadComponent: () =>
+      import('./game/scoreboard/scoreboard-page.component').then(
+        (m) => m.ScoreboardPageComponent,
+      ),
+    data: { title: 'Scoreboard' },
+  },
+  {
     // New game — the on-ramp to a GameBoard.live game.
     // Anonymous-first (anon-first-new-game Feature): intentionally NOT
     // auth-guarded so a first-time/anonymous visitor can fill the form with zero
@@ -34,7 +46,9 @@ export const appRoutes: Route[] = [
     // space/:spaceType/:spaceID mount point.
     path: 'space/:spaceType/:spaceID',
     loadChildren: () =>
-      import('./space/gameboard-space.routes').then((m) => m.templateSpaceRoutes),
+      import('./space/gameboard-space.routes').then(
+        (m) => m.templateSpaceRoutes,
+      ),
   },
   {
     // sneat-auth-menu-item navigates here on sign-out; mirror sneat-app and
@@ -52,6 +66,9 @@ export const appRoutes: Route[] = [
         (m) => m.MyProfilePageComponent,
       ),
     canActivate: [AuthGuard],
-    data: { title: 'My profile', authGuardPipe: () => redirectToLoginIfNotSignedIn },
+    data: {
+      title: 'My profile',
+      authGuardPipe: () => redirectToLoginIfNotSignedIn,
+    },
   },
 ];
