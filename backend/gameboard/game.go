@@ -29,6 +29,7 @@ type GameRecord struct {
 	Home        et.Side       `json:"home"`
 	Away        et.Side       `json:"away"`
 	ScheduledMs int64         `json:"scheduledMs"`
+	Location    string        `json:"location,omitempty"`
 	Status      et.GameStatus `json:"status"`
 	with.CreatedFields
 }
@@ -37,6 +38,7 @@ type GameRecord struct {
 type GameStore interface {
 	CreateGame(ctx context.Context, g GameRecord) error
 	GetGame(ctx context.Context, gameID string) (GameRecord, error)
+	UpdateGame(ctx context.Context, g GameRecord) error
 }
 
 // gameRecordDBO is the persisted form, stored at the gameKey doc. with.CreatedFields
@@ -45,18 +47,33 @@ type gameRecordDBO struct {
 	Home        et.Side       `json:"home"`
 	Away        et.Side       `json:"away"`
 	ScheduledMs int64         `json:"scheduledMs"`
+	Location    string        `json:"location,omitempty"`
 	Status      et.GameStatus `json:"status"`
 	with.CreatedFields
 }
 
 // CreateGame writes the game record at /ext/gameboard/games/{gameID}.
 func (s *dalgoStore) CreateGame(ctx context.Context, g GameRecord) error {
-	dbo := gameRecordDBO{Home: g.Home, Away: g.Away, ScheduledMs: g.ScheduledMs, Status: g.Status, CreatedFields: g.CreatedFields}
+	dbo := gameRecordDBO{Home: g.Home, Away: g.Away, ScheduledMs: g.ScheduledMs, Location: g.Location, Status: g.Status, CreatedFields: g.CreatedFields}
 	return s.db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
 		rec := dal.NewRecordWithData(gameKey(g.GameID), &dbo)
 		rec.SetError(nil) // mark data valid for write (dalgo2firestore reads record.Data())
 		if err := tx.Set(ctx, rec); err != nil {
 			return fmt.Errorf("failed to create game: %w", err)
+		}
+		return nil
+	})
+}
+
+// UpdateGame overwrites the game aggregate document with g (a full-record Set).
+// Callers (Service.UpdateGameSettings) load, authorize, mutate, then write back.
+func (s *dalgoStore) UpdateGame(ctx context.Context, g GameRecord) error {
+	dbo := gameRecordDBO{Home: g.Home, Away: g.Away, ScheduledMs: g.ScheduledMs, Location: g.Location, Status: g.Status, CreatedFields: g.CreatedFields}
+	return s.db.RunReadwriteTransaction(ctx, func(ctx context.Context, tx dal.ReadwriteTransaction) error {
+		rec := dal.NewRecordWithData(gameKey(g.GameID), &dbo)
+		rec.SetError(nil) // mark data valid for write (dalgo2firestore reads record.Data())
+		if err := tx.Set(ctx, rec); err != nil {
+			return fmt.Errorf("failed to update game: %w", err)
 		}
 		return nil
 	})
@@ -78,7 +95,7 @@ func (s *dalgoStore) GetGame(ctx context.Context, gameID string) (GameRecord, er
 	if err != nil {
 		return GameRecord{}, err
 	}
-	return GameRecord{GameID: gameID, Home: dbo.Home, Away: dbo.Away, ScheduledMs: dbo.ScheduledMs, Status: dbo.Status, CreatedFields: dbo.CreatedFields}, nil
+	return GameRecord{GameID: gameID, Home: dbo.Home, Away: dbo.Away, ScheduledMs: dbo.ScheduledMs, Location: dbo.Location, Status: dbo.Status, CreatedFields: dbo.CreatedFields}, nil
 }
 
 // newGameID returns a random dashless hex id (same shape as event ids).

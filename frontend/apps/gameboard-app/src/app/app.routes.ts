@@ -57,6 +57,22 @@ export const appRoutes: Route[] = [
     data: { title: 'Console' },
   },
   {
+    // Game settings — `g/:gameID/settings`. The organizer lands here after
+    // creating a game to finish setup (schedule, venue; crew later).
+    // Auth-guarded (sign-in required); write authorization is backend-enforced
+    // (creator-only, 403 otherwise).
+    path: 'g/:gameID/settings',
+    loadComponent: () =>
+      import('./game/settings/game-settings-page.component').then(
+        (m) => m.GameSettingsPageComponent,
+      ),
+    canActivate: [AuthGuard],
+    data: {
+      title: 'Game settings',
+      authGuardPipe: () => redirectToLoginIfNotSignedIn,
+    },
+  },
+  {
     // New game — the on-ramp to a GameBoard.live game.
     // Anonymous-first (anon-first-new-game Feature): intentionally NOT
     // auth-guarded so a first-time/anonymous visitor can fill the form with zero

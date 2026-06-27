@@ -12,11 +12,18 @@ export interface Side {
 }
 
 export interface GameRecord {
-  id: string;
+  gameID: string;
   home: Side;
   away: Side;
   status: string;
   scheduledMs?: number;
+  location?: string;
+}
+
+/** Body of PUT /v0/api4gameboard/games/{gameID}; omitted fields are unchanged. */
+export interface UpdateGameSettings {
+  scheduledMs?: number;
+  location?: string;
 }
 
 /** Self-declared creator role (new-game spec REQ:creator-affiliation). */

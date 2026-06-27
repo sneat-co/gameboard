@@ -15,6 +15,10 @@ var ErrUnauthorizedSource = errors.New("gameboard: unauthorized source for event
 // ErrInvalidEvent is returned for a structurally invalid append (e.g. no EventID).
 var ErrInvalidEvent = errors.New("gameboard: invalid event")
 
+// ErrNotAuthorized is returned when a caller is not permitted to mutate a game
+// (settings edits are restricted to the game's creator/organizer).
+var ErrNotAuthorized = errors.New("gameboard: not authorized")
+
 // Service appends authorized events and serves the deterministic fold.
 type Service struct {
 	store   EventStore
@@ -58,6 +62,34 @@ func (s *Service) CreateGame(ctx context.Context, createdBy string, home, away e
 		},
 	}
 	if err := s.games.CreateGame(ctx, g); err != nil {
+		return GameRecord{}, err
+	}
+	return g, nil
+}
+
+// UpdateGameSettings edits a game's schedule and/or location. Only the game's
+// creator (organizer) may edit; others get ErrNotAuthorized. scheduledMs and
+// location are optional (nil leaves the existing value untouched). Returns the
+// updated record. (Crew-based authorization replaces the creator check in a
+// later slice; happening-backed storage layers on after that.)
+func (s *Service) UpdateGameSettings(ctx context.Context, gameID, userID string, scheduledMs *int64, location *string) (GameRecord, error) {
+	if s.games == nil {
+		return GameRecord{}, ErrGameNotFound
+	}
+	g, err := s.games.GetGame(ctx, gameID)
+	if err != nil {
+		return GameRecord{}, err
+	}
+	if g.CreatedBy != userID {
+		return GameRecord{}, ErrNotAuthorized
+	}
+	if scheduledMs != nil {
+		g.ScheduledMs = *scheduledMs
+	}
+	if location != nil {
+		g.Location = *location
+	}
+	if err := s.games.UpdateGame(ctx, g); err != nil {
 		return GameRecord{}, err
 	}
 	return g, nil

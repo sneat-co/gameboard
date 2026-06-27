@@ -57,6 +57,7 @@ func (h *Handler) requireUser(w http.ResponseWriter, r *http.Request) (string, b
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v0/api4gameboard/games", h.createGame)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}", h.getGame)
+	mux.HandleFunc("PUT /v0/api4gameboard/games/{gameID}", h.updateGame)
 	mux.HandleFunc("POST /v0/api4gameboard/games/{gameID}/events", h.append)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/events", h.list)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/state", h.state)
@@ -117,6 +118,40 @@ func (h *Handler) createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, g)
+}
+
+// updateGameRequest is the body of PUT /v0/api4gameboard/games/{gameID}.
+// Fields are pointers so an omitted field leaves the stored value untouched.
+type updateGameRequest struct {
+	ScheduledMs *int64  `json:"scheduledMs,omitempty"`
+	Location    *string `json:"location,omitempty"`
+}
+
+// updateGame edits a game's schedule/location. The caller MUST be authenticated
+// and be the game's creator (organizer); others get 403. Reads stay public.
+func (h *Handler) updateGame(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requireUser(w, r)
+	if !ok {
+		return
+	}
+	var body updateGameRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid settings body")
+		return
+	}
+	g, err := h.svc.UpdateGameSettings(r.Context(), r.PathValue("gameID"), userID, body.ScheduledMs, body.Location)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrGameNotFound):
+			writeError(w, http.StatusNotFound, "not_found", "game not found")
+		case errors.Is(err, ErrNotAuthorized):
+			writeError(w, http.StatusForbidden, "forbidden", "only the organizer can edit this game")
+		default:
+			writeError(w, http.StatusInternalServerError, "internal", "failed to update game")
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, g)
 }
 
 func (h *Handler) getGame(w http.ResponseWriter, r *http.Request) {
