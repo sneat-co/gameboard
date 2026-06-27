@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { SneatApiService } from '@sneat/api';
 import { firstValueFrom } from 'rxjs';
-import { GameRecord, Side } from './new-game/game-contract';
+import { GameRecord, Side, UpdateGameSettings } from './new-game/game-contract';
 import {
   AppendResponse,
   buildEvent,
@@ -56,6 +56,36 @@ export class GameService {
         away,
         scheduledMs,
       }),
+    );
+  }
+
+  /**
+   * Read a single game record (schedule, location, sides, status).
+   * `GET .../games/{id}` — public/no-login, so it uses getAsAnonymous.
+   */
+  public getGame(gameID: string): Promise<GameRecord> {
+    return firstValueFrom(
+      this.api.getAsAnonymous<GameRecord>(
+        `api4gameboard/games/${encodeURIComponent(gameID)}`,
+      ),
+    );
+  }
+
+  /**
+   * Edit a game's schedule and/or location (organizer only).
+   * `PUT .../games/{id}` — authenticated; the backend restricts the write to
+   * the game's creator and returns 403 otherwise. (SneatApiService has no
+   * `patch`, so the partial-update endpoint is exposed as PUT.)
+   */
+  public updateGameSettings(
+    gameID: string,
+    settings: UpdateGameSettings,
+  ): Promise<GameRecord> {
+    return firstValueFrom(
+      this.api.put<GameRecord>(
+        `api4gameboard/games/${encodeURIComponent(gameID)}`,
+        settings,
+      ),
     );
   }
 

@@ -42,6 +42,59 @@ func TestCreateAndGetGame(t *testing.T) {
 	}
 }
 
+func TestUpdateGameSettings(t *testing.T) {
+	s := NewService(NewDalgoStore(dalgo2memory.NewDB()))
+	ctx := context.Background()
+	g, err := s.CreateGame(ctx, "organizer-1",
+		et.Side{Name: "Hawks"}, et.Side{Name: "Foxes"}, 1700000000000)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	// Non-creator cannot edit.
+	newMs := int64(1800000000000)
+	loc := "Central Park, Field 3"
+	if _, err := s.UpdateGameSettings(ctx, g.GameID, "intruder", &newMs, &loc); !errors.Is(err, ErrNotAuthorized) {
+		t.Fatalf("expected ErrNotAuthorized for non-creator, got %v", err)
+	}
+
+	// Creator edits time + location.
+	updated, err := s.UpdateGameSettings(ctx, g.GameID, "organizer-1", &newMs, &loc)
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if updated.ScheduledMs != newMs || updated.Location != loc {
+		t.Fatalf("update not applied: %+v", updated)
+	}
+
+	// Persisted.
+	got, err := s.Game(ctx, g.GameID)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.ScheduledMs != newMs || got.Location != loc {
+		t.Fatalf("settings not persisted: %+v", got)
+	}
+	if got.CreatedBy != "organizer-1" {
+		t.Fatalf("createdBy clobbered: %q", got.CreatedBy)
+	}
+
+	// Partial update: nil fields leave existing values untouched.
+	loc2 := "Riverside Courts"
+	if _, err := s.UpdateGameSettings(ctx, g.GameID, "organizer-1", nil, &loc2); err != nil {
+		t.Fatalf("partial update: %v", err)
+	}
+	got2, _ := s.Game(ctx, g.GameID)
+	if got2.ScheduledMs != newMs || got2.Location != loc2 {
+		t.Fatalf("partial update wrong: %+v", got2)
+	}
+
+	// Unknown game.
+	if _, err := s.UpdateGameSettings(ctx, "missing", "organizer-1", &newMs, &loc); !errors.Is(err, ErrGameNotFound) {
+		t.Fatalf("expected ErrGameNotFound, got %v", err)
+	}
+}
+
 func TestCreateGameValidation(t *testing.T) {
 	s := NewService(NewDalgoStore(dalgo2memory.NewDB()))
 	if _, err := s.CreateGame(context.Background(), "u", et.Side{Name: ""}, et.Side{Name: "B"}, 0); !errors.Is(err, ErrInvalidEvent) {
@@ -95,6 +148,54 @@ func TestCreateGameOverHTTP(t *testing.T) {
 
 	// missing game → 404
 	req = httptest.NewRequest(http.MethodGet, "/v0/api4gameboard/games/nope", nil)
+	rec = httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestUpdateGameOverHTTP(t *testing.T) {
+	srv := newServer()
+	body, _ := json.Marshal(createGameRequest{Home: et.Side{Name: "Hawks"}, Away: et.Side{Name: "Foxes"}})
+	req := httptest.NewRequest(http.MethodPost, "/v0/api4gameboard/games", bytes.NewReader(body))
+	req.Header.Set("Authorization", testBearer)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
+	}
+	var g GameRecord
+	_ = json.Unmarshal(rec.Body.Bytes(), &g)
+
+	// PUT schedule + location as the creator → 200, persisted.
+	ms := int64(1800000000000)
+	loc := "Wembley"
+	body, _ = json.Marshal(updateGameRequest{ScheduledMs: &ms, Location: &loc})
+	req = httptest.NewRequest(http.MethodPut, "/v0/api4gameboard/games/"+g.GameID, bytes.NewReader(body))
+	req.Header.Set("Authorization", testBearer)
+	rec = httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("patch: %d %s", rec.Code, rec.Body.String())
+	}
+	var updated GameRecord
+	_ = json.Unmarshal(rec.Body.Bytes(), &updated)
+	if updated.ScheduledMs != ms || updated.Location != loc {
+		t.Fatalf("patch not applied: %+v", updated)
+	}
+
+	// PUT without auth → 401.
+	req = httptest.NewRequest(http.MethodPut, "/v0/api4gameboard/games/"+g.GameID, bytes.NewReader(body))
+	rec = httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+
+	// PUT a missing game → 404.
+	req = httptest.NewRequest(http.MethodPut, "/v0/api4gameboard/games/nope", bytes.NewReader(body))
+	req.Header.Set("Authorization", testBearer)
 	rec = httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
 	if rec.Code != http.StatusNotFound {

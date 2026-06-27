@@ -507,8 +507,11 @@ export class NewGamePageComponent {
       const game = await this.gameService.createGame(home, away, scheduledMs);
       // The game is now persisted server-side; drop the local draft.
       clearNewGameDraft();
-      await this.notify(`Game created · #${game.id}`, 'success');
-      // TODO: navigate to the game scoreboard once that route exists.
+      await this.notify(`Game created · #${game.gameID}`, 'success');
+      // Land the organizer on the game settings page to finish setup
+      // (schedule, venue, crew). The settings route is auth-guarded; the
+      // creator is signed in at this point.
+      await this.router.navigate(['g', game.gameID, 'settings']);
     } catch {
       await this.notify('Could not create the game. Please try again.', 'danger');
     } finally {
