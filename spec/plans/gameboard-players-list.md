@@ -29,7 +29,7 @@ Slices are dependency-ordered. **Task 1** establishes the core fold + DTO + the 
 
 **Verifies:** sports/gameboard-live/players-list#ac:per-player-fold, sports/gameboard-live/players-list#ac:ordered-by-number
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 The deterministic core fold: each player's jersey #, name, points, personal fouls, and on-court minutes, working live and as a final box score, ordered for live/operational surfaces.
 - **Contract (TypeSpec + ext types, first):** the `PlayerStatRow` DTO (jersey #, name, points, personalFouls, minutesOnCourt) and the list-players operation in `api4gameboard.tsp`; the **default ordering rule** = ascending numeric jersey, un-numbered last by name, applied within on-court/bench groups when a surface groups them. Generate Go (`gameboard-ext/backend`) + TS (`@sneat/extension-gameboard-contract`).
@@ -40,7 +40,7 @@ The deterministic core fold: each player's jersey #, name, points, personal foul
 
 **Verifies:** sports/gameboard-live/players-list#ac:foul-trouble-flag
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Surface a foul-trouble flag as a player nears the disqualification limit (e.g. one foul away) — the primary live coaching/viewer signal.
 - **Contract (TypeSpec + ext types, first):** add a `foulTrouble` boolean (and the threshold-distance basis) to the `PlayerStatRow` DTO.
@@ -51,7 +51,7 @@ Surface a foul-trouble flag as a player nears the disqualification limit (e.g. o
 
 **Verifies:** sports/gameboard-live/players-list#ac:public-vs-internal-consent
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 The single consent rule the list owns: a minor without publish-consent is shown by jersey number only in public mode, while team-internal mode (the coach's own team) shows full stats.
 - **Contract (TypeSpec + ext types, first):** the **consent-mode parameter** (`public` | `team-internal`) on the list operation, and the DTO's "jersey-only" redacted shape for a consent-gated minor.
@@ -62,7 +62,7 @@ The single consent rule the list owns: a minor without publish-consent is shown 
 
 **Verifies:** sports/gameboard-live/players-list#ac:box-score-ordered-by-points, sports/gameboard-live/players-list#ac:no-uncaptured-stat
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 The final box-score surface orders by points → assists → minutes (descending), and the whole list is pinned to capture-bound columns only.
 - **Contract (TypeSpec + ext types, first):** a **box-score ordering** parameter (points, then assists, then minutes, all descending; jersey breaks ties) selectable by the recap surface; freeze the column set to captured stats only (points, assists, fouls, minutes) — no +/-, shooting %, turnovers, or rebounds/steals/blocks fields exist in the DTO.

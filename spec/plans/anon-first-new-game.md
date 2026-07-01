@@ -24,7 +24,7 @@ Linear sequence chosen to de-risk in dependency order. Task 1 ungates the route 
 
 **Verifies:** anon-first-new-game#ac:renders-while-signed-out
 **Depends-On:** —
-**Status:** done
+**Status:** complete
 
 Remove `canActivate: [AuthGuard]` (and the `redirectToLoginIfNotSignedIn` `authGuardPipe`) from the `/new-game` route in `app.routes.ts` so the form renders for unauthenticated users instead of redirecting to `/login`. Add a Playwright e2e asserting a signed-out visit to `/new-game` shows the form and does not redirect.
 
@@ -32,7 +32,7 @@ Remove `canActivate: [AuthGuard]` (and the `redirectToLoginIfNotSignedIn` `authG
 
 **Verifies:** anon-first-new-game#ac:draft-saved-on-change, anon-first-new-game#ac:draft-restored-on-load
 **Depends-On:** 1
-**Status:** done
+**Status:** complete
 
 Add a small draft-persistence helper that serializes the form's signal values to a single `localStorage` key on change (e.g. via an `effect`) and rehydrates them in `NewGamePageComponent` on init when a draft exists. Cover with e2e: typing values writes the draft key; reloading the route restores the field values.
 
@@ -40,7 +40,7 @@ Add a small draft-persistence helper that serializes the form's signal values to
 
 **Verifies:** anon-first-new-game#ac:signin-affordance-visible, anon-first-new-game#ac:roundtrip-preserves-draft
 **Depends-On:** 2
-**Status:** done
+**Status:** complete
 
 Add a non-blocking sign-in affordance to the form (visible while signed-out, never blocking editing) that triggers the app's configured full-page redirect sign-in with a return URL back to `/new-game`. Relying on Task 2's persistence, ensure the draft is intact after the round-trip. Cover with e2e: the affordance is visible and the form remains editable without signing in, and (where the harness allows simulating the auth return) the draft values survive a return to `/new-game`.
 
@@ -48,7 +48,7 @@ Add a non-blocking sign-in affordance to the form (visible while signed-out, nev
 
 **Verifies:** anon-first-new-game#ac:anonymous-create-routes-through-signin, anon-first-new-game#ac:authenticated-create-persists
 **Depends-On:** 3
-**Status:** done
+**Status:** complete
 
 Gate the "create game" action on authentication: when signed-out, route the user through sign-in first (draft preserved per Task 3) and do not persist to the backend until authenticated; when signed-in, an explicit create call persists the game via `GameService`. Cover with e2e: triggering create while signed-out routes through sign-in without a backend write, and an explicit create while signed-in persists the game.
 

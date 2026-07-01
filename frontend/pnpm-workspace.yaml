@@ -9,6 +9,7 @@ allowBuilds:
   msgpackr-extract: true
   nx: true
   protobufjs: true
+  stockfish: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@sneat/*'
@@ -23,4 +24,5 @@ onlyBuiltDependencies:
   - msgpackr-extract
   - nx
   - protobufjs
+  - stockfish
   - unrs-resolver

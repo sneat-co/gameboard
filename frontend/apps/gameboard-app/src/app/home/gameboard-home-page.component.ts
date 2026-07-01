@@ -56,6 +56,12 @@ import { map } from 'rxjs';
     <ion-content class="ion-padding">
       <ion-button expand="block" routerLink="/new-game">New game</ion-button>
 
+      <!-- The chess MVP (board + clock + OTB record) — playable right away,
+           anonymous-friendly like new-game. -->
+      <ion-button expand="block" fill="outline" routerLink="/chess">
+        ♟ Play chess
+      </ion-button>
+
       @if (isSignedIn()) {
         <ion-button expand="block" fill="outline" routerLink="/my/games">
           My games

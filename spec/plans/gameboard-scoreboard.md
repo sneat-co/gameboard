@@ -39,7 +39,7 @@ The three Feature plan-time decisions resolve inside the slices that need them: 
 
 **Verifies:** sports/gameboard-live/scoreboard#ac:title-shows-status-and-period, sports/gameboard-live/scoreboard#ac:main-board-elements
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 Establish the read-fold over the append-only event log and the no-login public endpoint that serves the board state (status, period, per-team color/score/fouls/timeouts, clock, bonus, possession) so title and main-board render.
 - **Contract (TypeSpec + ext types, first):** in `api4gameboard.tsp` define the `Game` reference (`/ext/gameboard/games/{gameID}`, team-space ids + colors), the `BoardState` projection model (status enum, period, per-team `score`/`teamFouls`/`timeoutsRemaining`/`color`, `clock`, `bonus` flags, `possession`), and a public `getBoard(gameID)` read operation; freeze as `gameboard-ext/backend` Go + `@sneat/extension-gameboard-contract` TS.
@@ -50,7 +50,7 @@ Establish the read-fold over the append-only event log and the no-login public e
 
 **Verifies:** sports/gameboard-live/scoreboard#ac:scorer-records-fouls-and-timeouts
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Append team-foul and timeout events (with the configured bonus threshold, timeout allowance, and per-period foul-reset cadence) so the fold reflects incremented fouls and decremented timeouts.
 - **Contract (TypeSpec + ext types, first):** define `TeamFoulEvent` and `TimeoutEvent` event-log entries plus the rules-config block (bonus threshold, timeout allowance, foul-reset cadence with basketball defaults — resolves the rules-parameters decision); extend `BoardState` fold rules for foul-reset-per-period and bonus.
@@ -61,7 +61,7 @@ Append team-foul and timeout events (with the configured bonus threshold, timeou
 
 **Verifies:** sports/gameboard-live/scoreboard#ac:points-create-scoring-event
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Append scoring events (team, points 1/2/3, period, clock, optional scorer, optional assist) so each team's score equals the sum of its scoring events, with optional player attribution.
 - **Contract (TypeSpec + ext types, first):** define `ScoringEvent` (team, points, period, clock, optional scorer ref, optional assist ref) in the event log; document that the team score is the fold-sum of its scoring events and attribution is optional (resolves the scoring-event ownership/attribution decision — it extends the parent's capture).
@@ -72,7 +72,7 @@ Append scoring events (team, points 1/2/3, period, clock, optional scorer, optio
 
 **Verifies:** sports/gameboard-live/scoreboard#ac:footer-last-score-attribution, sports/gameboard-live/scoreboard#ac:score-by-period-accumulates, sports/gameboard-live/scoreboard#ac:possession-toggle
 **Depends-On:** 3
-**Status:** pending
+**Status:** planning
 
 Project the scoring-event stream into the last-score footer (points + scorer + optional assist, neutral empty state before any score), the accumulating per-period strip, and the possession-arrow read from the fold.
 - **Contract (TypeSpec + ext types, first):** extend `BoardState` with `lastScore` (points, team, optional scorer, optional assist), a `byPeriod` array, and confirm `possession`; add the possession-set event entry to the log shape.
@@ -83,7 +83,7 @@ Project the scoring-event stream into the last-score footer (points + scorer + o
 
 **Verifies:** sports/gameboard-live/scoreboard#ac:stale-board-indicated
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Surface whether the displayed projection is current: a live indication while updates arrive, switching to a stale/last-updated indication after the configured interval, on the public page and big-screen mode.
 - **Contract (TypeSpec + ext types, first):** add `lastUpdatedAt`/heartbeat to `BoardState` and define the staleness interval + push-vs-poll delivery mechanism (resolves the freshness decision, shared with `gameboard-live`).
@@ -94,7 +94,7 @@ Surface whether the displayed projection is current: a live indication while upd
 
 **Verifies:** sports/gameboard-live/scoreboard#ac:share-anonymous-follow-gated, sports/gameboard-live/scoreboard#ac:minor-shown-by-number-on-board
 **Depends-On:** 4
-**Status:** pending
+**Status:** planning
 
 Add the anonymous share CTA (link + QR via the `invitus` `link` channel), the account-gated follow CTA (delegating to `gameboard-live`'s follow path), and enforce minor-safe rendering on every player-identifying element including shared/QR-opened and big-screen views.
 - **Contract (TypeSpec + ext types, first):** define the anonymous `shareBoard(gameID)` operation (link + QR payload over the `invitus` `link` channel), reference the account-gated follow operation owned by `gameboard-live`, and add the per-player `displayConsent` flag to projected player refs in `BoardState`.

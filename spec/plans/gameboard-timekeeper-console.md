@@ -31,7 +31,7 @@ Ordering is dependency-driven. Task 1 establishes the **authority gate** (accoun
 
 **Verifies:** sports/gameboard-live/timekeeper-console#ac:console-requires-account-and-role
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 Establish the write-boundary gate: every timekeeper append requires a signed-in sneat account holding the clock/board-runner game-day role; unauthorized or anonymous callers are refused, and an authorized append reflects live on the scoreboard projection.
 - **Contract (TypeSpec + ext types, first):** in `api4gameboard.tsp`, define the authenticated append envelope and the `source-authority` discriminator for the clock/board-runner role (reusing the frozen event-timeline envelope); emit the Go ext types in `gameboard-ext/backend` and `@sneat/extension-gameboard-contract`.
@@ -42,7 +42,7 @@ Establish the write-boundary gate: every timekeeper append requires a signed-in 
 
 **Verifies:** sports/gameboard-live/timekeeper-console#ac:start-stop-adjust-clock, sports/gameboard-live/timekeeper-console#ac:advance-period, sports/gameboard-live/timekeeper-console#ac:set-quarter-length-before-start
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 The timekeeper starts/stops the clock and adjusts it (±5s, correct-to-value), advances the period/quarter into overtime, and sets a period's length in one-minute steps before its clock starts (locked once started, re-opened on advance).
 - **Contract (TypeSpec + ext types, first):** define `clock` (start/stop/adjust), `period` (advance + length-config) event kinds with their payloads and the clock-projection model in `api4gameboard.tsp`; freeze Go + TS types.
@@ -53,7 +53,7 @@ The timekeeper starts/stops the clock and adjusts it (±5s, correct-to-value), a
 
 **Verifies:** sports/gameboard-live/timekeeper-console#ac:toggle-possession, sports/gameboard-live/timekeeper-console#ac:timeout-decrements-and-counts-down
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 The timekeeper toggles the possession arrow between the two team spaces and grants a team a timeout, which decrements that team's remaining-timeouts fold and starts a timeout countdown surfaced on the scoreboard.
 - **Contract (TypeSpec + ext types, first):** define `possession` (toggle, team-space ref) and `timeout` (granted-to team-space ref, countdown duration) event kinds plus the possession-arrow and timeouts-remaining projection models; freeze Go + TS types.
@@ -64,7 +64,7 @@ The timekeeper toggles the possession arrow between the two team spaces and gran
 
 **Verifies:** sports/gameboard-live/timekeeper-console#ac:team-possession-timer
 **Depends-On:** 3
-**Status:** pending
+**Status:** planning
 
 The optional **Team A · dead-ball · Team B** control starts/switches a per-team possession timer (dead-ball pauses both) by appending possession-time events on the game clock; per-team totals fold deterministically for the recap chart, and its absence never blocks clock/score operation.
 - **Contract (TypeSpec + ext types, first):** define the `possession-time` event kind (Team A / dead-ball / Team B selection, game-clock based) and the per-team possession-share projection consumed by `post-game-recap`; freeze Go + TS types.

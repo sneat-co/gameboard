@@ -12,6 +12,7 @@ Feature specifications — one per sub-system. Each Feature is a lint-clean spec
 |---------|--------|--------------|
 | [anon-first-new-game](anon-first-new-game/README.md) | Approved | [anon-first-new-game](../ideas/anon-first-new-game.md) |
 | [sports](sports/README.md) | Approved | [sneat-sports](../ideas/sneat-sports.md) |
+| [chess-mvp](chess-mvp/README.md) | Implementing | — |
 
 ## Open Questions
 

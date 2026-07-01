@@ -6,6 +6,12 @@ export default [
   ...nx.configs['flat/angular-template'],
   ...baseConfig,
   {
+    // Vendored Stockfish WASM worker build (public/stockfish/*.js, copied
+    // verbatim from node_modules/stockfish/bin/ — see stockfish.service.ts) —
+    // it's a served static asset, not app source, so it isn't linted.
+    ignores: ['**/public/stockfish/**'],
+  },
+  {
     files: ['**/*.ts'],
     rules: {
       '@angular-eslint/directive-selector': [
