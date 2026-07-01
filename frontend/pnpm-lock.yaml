@@ -110,12 +110,6 @@ importers:
       '@sneat/extension-contactus-shared':
         specifier: 0.12.2
         version: 0.12.2(f89aa1da352d7bf53953dab9036b8ce3)
-      '@sneat/extensions-schedulus-main':
-        specifier: 0.11.0
-        version: 0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))
-      '@sneat/extensions-schedulus-shared':
-        specifier: 0.11.0
-        version: 0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))
       '@sneat/grid':
         specifier: 0.14.0
         version: 0.14.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))
@@ -123,9 +117,6 @@ importers:
         specifier: 0.14.0
         version: 0.14.0(7063daa231742a6cb9cb860dcf8f30f5)
       '@sneat/mod-assetus-core':
-        specifier: 0.11.0
-        version: 0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))
-      '@sneat/mod-schedulus-core':
         specifier: 0.11.0
         version: 0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))
       '@sneat/random':
@@ -4225,18 +4216,6 @@ packages:
       '@sneat/ui': ^0.12.0
       rxjs: ^7.0.0
 
-  '@sneat/extensions-schedulus-main@0.11.0':
-    resolution: {integrity: sha512-GBNpqqqwxhKWhjPzjYqW3HPoQbN8JlSBnt0znX8oZBOwI2TmynlqSnPyNoYw2qJyf2GZ8VrXrMucp9nYo4PXrw==}
-    peerDependencies:
-      '@angular/common': '>=21.0.0'
-      '@angular/core': '>=21.0.0'
-
-  '@sneat/extensions-schedulus-shared@0.11.0':
-    resolution: {integrity: sha512-rA3zdS+cWc8c4rDjswoLxyxJpRoB0B98/0qQ6KSt6PXsf8VaRIxByvnFC9FBbn6OMSqDA7mBbp5IW7xv1f0POw==}
-    peerDependencies:
-      '@angular/common': '>=21.0.0'
-      '@angular/core': '>=21.0.0'
-
   '@sneat/grid@0.14.0':
     resolution: {integrity: sha512-LO2E2LqWFobp9JPhkSFMo3mB2ENeaBGAy6pWsXTu/wagKru1opr5Tz1gtcgbV18tJkrXd3J6P5L9hSFAvv/y6Q==}
     peerDependencies:
@@ -4255,12 +4234,6 @@ packages:
 
   '@sneat/mod-assetus-core@0.11.0':
     resolution: {integrity: sha512-YSAN0sIq+BRfUF6Da1WGg0hxuPVfNc3B0Jx2DEGXOLPMf664fO3R1cD30oi4pkqemUD+hV95oA70eEK40zXe7A==}
-    peerDependencies:
-      '@angular/common': '>=21.0.0'
-      '@angular/core': '>=21.0.0'
-
-  '@sneat/mod-schedulus-core@0.11.0':
-    resolution: {integrity: sha512-N3cShZSR4FZf4iZ8xX0a+1Aj0RDLg8JWEYsvc7PTnooS0bgFJfFRLtH8veOTPu7bdC0lNyGMnmouzMP2mQ8hiw==}
     peerDependencies:
       '@angular/common': '>=21.0.0'
       '@angular/core': '>=21.0.0'
@@ -15413,18 +15386,6 @@ snapshots:
       rxjs: 7.8.2
       tslib: 2.8.1
 
-  '@sneat/extensions-schedulus-main@0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))':
-    dependencies:
-      '@angular/common': 21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2)
-      '@angular/core': 21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0)
-      tslib: 2.8.1
-
-  '@sneat/extensions-schedulus-shared@0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))':
-    dependencies:
-      '@angular/common': 21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2)
-      '@angular/core': 21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0)
-      tslib: 2.8.1
-
   '@sneat/grid@0.14.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))':
     dependencies:
       '@angular/common': 21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2)
@@ -15442,12 +15403,6 @@ snapshots:
       tslib: 2.8.1
 
   '@sneat/mod-assetus-core@0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))':
-    dependencies:
-      '@angular/common': 21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2)
-      '@angular/core': 21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0)
-      tslib: 2.8.1
-
-  '@sneat/mod-schedulus-core@0.11.0(@angular/common@21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2))(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))':
     dependencies:
       '@angular/common': 21.2.9(@angular/core@21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0))(rxjs@7.8.2)
       '@angular/core': 21.2.9(@angular/compiler@21.2.9)(rxjs@7.8.2)(zone.js@0.16.0)
