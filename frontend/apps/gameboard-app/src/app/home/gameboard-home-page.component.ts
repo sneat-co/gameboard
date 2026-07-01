@@ -56,6 +56,16 @@ import { map } from 'rxjs';
     <ion-content class="ion-padding">
       <ion-button expand="block" routerLink="/new-game">New game</ion-button>
 
+      <!-- Basketball game invites MVP: organize → invite the roster → parents
+           RSVP for their kid → roster fills. Anonymous-friendly, like new-game
+           and chess (see game-invites/organize-game-page.component.ts). -->
+      <ion-button expand="block" fill="outline" routerLink="/game-invites/new">
+        🏀 Organize a game
+      </ion-button>
+      <ion-button expand="block" fill="clear" routerLink="/game-invites">
+        My rosters
+      </ion-button>
+
       <!-- The chess MVP (board + clock + OTB record) — playable right away,
            anonymous-friendly like new-game. -->
       <ion-button expand="block" fill="outline" routerLink="/chess">

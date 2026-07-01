@@ -87,6 +87,54 @@ export const appRoutes: Route[] = [
     data: { title: 'New game' },
   },
   {
+    // Organize a basketball game — `/game-invites/new` — the on-ramp to the
+    // organize→invite-roster→parent-RSVP→roster-fill loop (basketball game
+    // invites MVP). Anonymous-first like new-game/chess: no auth guard, the
+    // whole feature is localStorage-backed today (game-invite-store.ts).
+    // Declared before `game-invites/:gameId` below so this literal segment
+    // isn't shadowed.
+    path: 'game-invites/new',
+    loadComponent: () =>
+      import('./game-invites/organize-game-page.component').then(
+        (m) => m.OrganizeGamePageComponent,
+      ),
+    data: { title: 'Organize a game' },
+  },
+  {
+    // The anon-first parent-proxy RSVP page — `/game-invites/rsvp/:token`.
+    // This is the invite link a coach copies from the roster console; it MUST
+    // stay reachable and functional without a signed-in session (a parent
+    // opening it cold is the whole point). Declared before
+    // `game-invites/:gameId` so the literal `rsvp` segment isn't shadowed.
+    path: 'game-invites/rsvp/:token',
+    loadComponent: () =>
+      import('./game-invites/rsvp-page.component').then(
+        (m) => m.RsvpPageComponent,
+      ),
+    data: { title: 'Game invite' },
+  },
+  {
+    // My organized games (game-invites feature) — `/game-invites`. Local-
+    // storage-backed like the chess games list, so it needs no sign-in.
+    path: 'game-invites',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./game-invites/game-invites-list-page.component').then(
+        (m) => m.GameInvitesListPageComponent,
+      ),
+    data: { title: 'My rosters' },
+  },
+  {
+    // Roster / coach console for one organized game — `/game-invites/:gameId`
+    // — invite links, fill count, roster grouped by RSVP status.
+    path: 'game-invites/:gameId',
+    loadComponent: () =>
+      import('./game-invites/roster-page.component').then(
+        (m) => m.RosterPageComponent,
+      ),
+    data: { title: 'Roster' },
+  },
+  {
     // Chess hub — `/chess`. The chess MVP's on-ramp: pick pass-and-play,
     // vs-computer, or OTB clock+record, a time control, and start. Like
     // new-game, anonymous-friendly — no auth required to play; games are
