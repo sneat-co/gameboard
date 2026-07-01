@@ -43,4 +43,49 @@ describe('appRoutes', () => {
     expect(space).toBeDefined();
     expect(typeof space?.loadChildren).toBe('function');
   });
+
+  describe('game-invites (basketball game invites MVP)', () => {
+    it('serves the organize-game form without an auth guard (anonymous-friendly)', () => {
+      const organize = appRoutes.find((r) => r.path === 'game-invites/new');
+      expect(organize).toBeDefined();
+      expect(organize?.canActivate ?? []).toHaveLength(0);
+      expect(typeof organize?.loadComponent).toBe('function');
+    });
+
+    it('serves the anon-first parent-proxy RSVP page without an auth guard', () => {
+      const rsvp = appRoutes.find((r) => r.path === 'game-invites/rsvp/:token');
+      expect(rsvp).toBeDefined();
+      expect(rsvp?.canActivate ?? []).toHaveLength(0);
+      expect(typeof rsvp?.loadComponent).toBe('function');
+    });
+
+    it('serves the roster/coach console without an auth guard', () => {
+      const roster = appRoutes.find((r) => r.path === 'game-invites/:gameId');
+      expect(roster).toBeDefined();
+      expect(roster?.canActivate ?? []).toHaveLength(0);
+      expect(typeof roster?.loadComponent).toBe('function');
+    });
+
+    it('serves the my-rosters list without an auth guard', () => {
+      const list = appRoutes.find((r) => r.path === 'game-invites');
+      expect(list).toBeDefined();
+      expect(list?.pathMatch).toBe('full');
+      expect(list?.canActivate ?? []).toHaveLength(0);
+    });
+
+    it('declares game-invites/new and game-invites/rsvp/:token before the :gameId catch-all, so literal segments are not shadowed', () => {
+      const newIdx = appRoutes.findIndex((r) => r.path === 'game-invites/new');
+      const rsvpIdx = appRoutes.findIndex(
+        (r) => r.path === 'game-invites/rsvp/:token',
+      );
+      const gameIdIdx = appRoutes.findIndex(
+        (r) => r.path === 'game-invites/:gameId',
+      );
+      expect(newIdx).toBeGreaterThanOrEqual(0);
+      expect(rsvpIdx).toBeGreaterThanOrEqual(0);
+      expect(gameIdIdx).toBeGreaterThanOrEqual(0);
+      expect(newIdx).toBeLessThan(gameIdIdx);
+      expect(rsvpIdx).toBeLessThan(gameIdIdx);
+    });
+  });
 });
