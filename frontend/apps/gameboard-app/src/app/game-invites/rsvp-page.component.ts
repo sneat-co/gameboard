@@ -27,6 +27,7 @@ import {
   IonTextarea,
   IonTitle,
   IonToolbar,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { inviteTeaser, RsvpStatus } from './game-invite-contract';
 import { decodeInviteToken } from './invite-token';
@@ -168,13 +169,23 @@ const STATUSES: readonly { id: RsvpStatus; label: string }[] = [
                 />
               </ion-item>
 
-              <!-- Step 3 — attendance. -->
-              <div class="statuses">
+              <!-- Step 3 — attendance. ion-chip has no built-in 'button' prop
+                   (unlike ion-item), so it renders as a plain non-focusable
+                   element for (click) alone — the same keyboard-inaccessible
+                   gap flows.md/lists.md flag for 'tappable'. Made operable
+                   here with tabindex/role/keydown, since this picker is the
+                   core action on the highest-conversion page in the flow. -->
+              <div class="statuses" role="radiogroup" aria-label="Attendance">
                 @for (s of statuses; track s.id) {
                   <ion-chip
                     [color]="status() === s.id ? 'primary' : 'medium'"
                     [outline]="status() !== s.id"
+                    tabindex="0"
+                    role="radio"
+                    [attr.aria-checked]="status() === s.id"
                     (click)="status.set(s.id)"
+                    (keydown.enter)="status.set(s.id)"
+                    (keydown.space)="$event.preventDefault(); status.set(s.id)"
                     >{{ s.label }}</ion-chip
                   >
                 }
@@ -200,6 +211,7 @@ const STATUSES: readonly { id: RsvpStatus; label: string }[] = [
               <ion-button
                 expand="block"
                 class="ion-margin-top"
+                [disabled]="submitting()"
                 (click)="submit()"
                 data-testid="submit-rsvp"
               >
@@ -273,6 +285,7 @@ const STATUSES: readonly { id: RsvpStatus; label: string }[] = [
 export class RsvpPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly toasts = inject(ToastController);
 
   protected readonly statuses = STATUSES;
 
@@ -385,6 +398,19 @@ export class RsvpPageComponent {
       this.selectedPlayerId.set(playerId);
       this.version.update((v) => v + 1);
       this.confirmed.set(true);
+    } catch {
+      // Unexpected failure (not the handled "game/player not found" case
+      // above) — never fail silently on the highest-conversion page in the
+      // flow (states.md "surface failures"). The inline message covers
+      // expected validation; the toast catches everything else.
+      this.showError.set(true);
+      this.errorMessage.set('Could not save your RSVP. Please try again.');
+      const toast = await this.toasts.create({
+        message: 'Something went wrong saving your RSVP. Please try again.',
+        duration: 4000,
+        color: 'danger',
+      });
+      await toast.present();
     } finally {
       this.submitting.set(false);
     }

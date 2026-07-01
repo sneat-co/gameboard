@@ -30,6 +30,7 @@ import {
   IonTitle,
   IonToggle,
   IonToolbar,
+  ToastController,
 } from '@ionic/angular/standalone';
 import { SneatAuthStateService } from '@sneat/auth-core';
 import {
@@ -321,6 +322,7 @@ interface DraftPlayer {
           <ion-button
             expand="block"
             class="ion-margin-top"
+            [disabled]="submitting()"
             (click)="create()"
             data-testid="create-game"
           >
@@ -357,6 +359,7 @@ interface DraftPlayer {
 export class OrganizeGamePageComponent {
   private readonly router = inject(Router);
   private readonly authStateService = inject(SneatAuthStateService);
+  private readonly toasts = inject(ToastController);
 
   protected readonly sports = SPORTS;
   protected readonly weekdays = WEEKDAYS;
@@ -460,6 +463,15 @@ export class OrganizeGamePageComponent {
       await this.router.navigate(['/game-invites', doc.gameId], {
         replaceUrl: true,
       });
+    } catch {
+      // Never fail silently on a user-initiated create (states.md "surface
+      // failures") — e.g. localStorage unavailable/full in private browsing.
+      const toast = await this.toasts.create({
+        message: 'Could not create the game. Please try again.',
+        duration: 4000,
+        color: 'danger',
+      });
+      await toast.present();
     } finally {
       this.submitting.set(false);
     }

@@ -128,38 +128,49 @@ import {
           >
         </h3>
 
-        @for (group of groups(); track group.key) {
-          @if (group.rows.length > 0) {
-            <ion-note class="group-title">{{ group.label }}</ion-note>
-            <ion-list [attr.data-testid]="'group-' + group.key">
-              @for (row of group.rows; track row.player.playerId) {
-                <ion-item>
-                  <ion-label>
-                    <h2>
-                      {{ row.player.name
-                      }}{{ row.player.jersey ? ' #' + row.player.jersey : '' }}
-                    </h2>
-                    @if (row.response) {
-                      <ion-note
-                        >{{ row.response.respondedBy }}
-                        @if (row.response.note) {
-                          — "{{ row.response.note }}"
-                        }
-                      </ion-note>
-                    } @else if (row.player.guardianName) {
-                      <ion-note>Parent: {{ row.player.guardianName }}</ion-note>
-                    }
-                  </ion-label>
-                  <ion-button
-                    slot="end"
-                    fill="outline"
-                    size="small"
-                    (click)="copyPlayerLink(row.player.playerId)"
-                    >Copy invite</ion-button
-                  >
-                </ion-item>
-              }
-            </ion-list>
+        @if (fill().total === 0) {
+          <ion-note class="hint" data-testid="empty-roster"
+            >No players on the roster yet — add one below, or copy the invite
+            link above so parents can add their kid.</ion-note
+          >
+        } @else {
+          @for (group of groups(); track group.key) {
+            @if (group.rows.length > 0) {
+              <ion-note class="group-title">{{ group.label }}</ion-note>
+              <ion-list [attr.data-testid]="'group-' + group.key">
+                @for (row of group.rows; track row.player.playerId) {
+                  <ion-item>
+                    <ion-label>
+                      <h2>
+                        {{ row.player.name
+                        }}{{
+                          row.player.jersey ? ' #' + row.player.jersey : ''
+                        }}
+                      </h2>
+                      @if (row.response) {
+                        <ion-note
+                          >{{ row.response.respondedBy }}
+                          @if (row.response.note) {
+                            — "{{ row.response.note }}"
+                          }
+                        </ion-note>
+                      } @else if (row.player.guardianName) {
+                        <ion-note
+                          >Parent: {{ row.player.guardianName }}</ion-note
+                        >
+                      }
+                    </ion-label>
+                    <ion-button
+                      slot="end"
+                      fill="outline"
+                      size="small"
+                      (click)="copyPlayerLink(row.player.playerId)"
+                      >Copy invite</ion-button
+                    >
+                  </ion-item>
+                }
+              </ion-list>
+            }
           }
         }
 
@@ -346,8 +357,15 @@ export class RosterPageComponent {
     await this.copy(buildInviteLink(this.origin(), { gameId: id, playerId }));
   }
 
+  // NOT location.origin: the app is served under the `/app/` base href
+  // (project.json baseHref, wrangler.jsonc routes) while the bare root
+  // domain routes to a *different* Worker (the marketing landing) — an
+  // invite link built from location.origin alone 404s in production.
+  // document.baseURI resolves the <base href> tag to an absolute URL
+  // (e.g. "https://gameboard.live/app/"), so it round-trips correctly.
   private origin(): string {
-    return typeof location === 'undefined' ? '' : location.origin;
+    if (typeof document === 'undefined') return '';
+    return document.baseURI.replace(/\/+$/, '');
   }
 
   private async copy(link: string): Promise<void> {

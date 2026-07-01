@@ -62,8 +62,13 @@ export function decodeInviteToken(token: string): InviteTokenPayload | null {
   }
 }
 
-/** The full shareable URL for a payload, given the app's origin (e.g.
- * `location.origin`). */
+/** The full shareable URL for a payload, given the app's base URL. Pass the
+ * app's *base URL*, not necessarily the bare origin — when the app is served
+ * under a path prefix (e.g. `https://gameboard.live/app`, per this app's
+ * `baseHref`/wrangler routes), the prefix must be included or the link 404s
+ * against whatever else is mounted at the root domain. Callers should derive
+ * this from `document.baseURI` (resolves `<base href>`), not `location.origin`
+ * alone. */
 export function buildInviteLink(
   origin: string,
   payload: InviteTokenPayload,
