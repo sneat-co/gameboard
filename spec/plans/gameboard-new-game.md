@@ -36,7 +36,7 @@ A task is "done" only when both subtasks land and its ACs verify end-to-end agai
 
 **Verifies:** sports/gameboard-live/new-game#ac:account-required-to-create, sports/gameboard-live/new-game#ac:create-with-two-names-and-time
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 The spine: a signed-in account holder creates a game from just two team names and a date/time, becoming organizer/scorer; a visitor with no account cannot.
 - **Contract (TypeSpec + ext types, first):** `Game` model (id, two `TeamSide` stubs `{name}`, `scheduledAt`, `status`, `organizerID`/`scorerID`) and a `createGame` operation requiring authentication, in `api4gameboard.tsp` + the `gameboard-ext/backend` Go types + `@sneat/extension-gameboard-contract`; generate Go + TS.
@@ -47,7 +47,7 @@ The spine: a signed-in account holder creates a game from just two team names an
 
 **Verifies:** sports/gameboard-live/new-game#ac:ad-hoc-and-existing-sides, sports/gameboard-live/new-game#ac:sets-team-colour
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Each side may reference an existing sneat-team team-space or be an ad-hoc typed name, and each carries a distinguishing brand colour (defaulted, never required).
 - **Contract (TypeSpec + ext types, first):** shape `TeamSide` as the canonical inline side `{name, colour, spaceID?: null}` — `spaceID` set for an existing sneat-team team-space, `null` for an ad-hoc typed name — with documented colour defaults; no roster is copied across the contract boundary.
@@ -58,7 +58,7 @@ Each side may reference an existing sneat-team team-space or be an ad-hoc typed 
 
 **Verifies:** sports/gameboard-live/new-game#ac:creator-discloses-affiliation
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 At creation the organizer discloses their relationship to the game, recorded on the game for transparency/authority.
 - **Contract (TypeSpec + ext types, first):** an `affiliation` field on `createGame` — enum `coach | player | judge | score-recorder | timekeeper | spectator`, with a required `spectatorAffiliation` (`fan-of:<side>` | `neutral`) when `spectator` is chosen; validate the conditional on the contract.
@@ -69,7 +69,7 @@ At creation the organizer discloses their relationship to the game, recorded on 
 
 **Verifies:** sports/gameboard-live/new-game#ac:scheduled-and-shareable
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 A created game (with date/time and optional venue/competition) is persisted at `scheduled`, appears as a Calendarius happening, and exposes a public link, QR, and game #.
 - **Contract (TypeSpec + ext types, first):** optional `venue` + `competition` on the game; a share descriptor (public `link`, `qr`, human-typable `gameNumber`) on the get-game/create-game response.
@@ -80,7 +80,7 @@ A created game (with date/time and optional venue/competition) is persisted at `
 
 **Verifies:** sports/gameboard-live/new-game#ac:materialization-deferred-to-first-use, sports/gameboard-live/new-game#ac:optional-next-steps
 **Depends-On:** 2, 4
-**Status:** pending
+**Status:** planning
 
 Creation records references/stubs only — no team profiles or accounts are eagerly created — and the organizer is offered (never required) lineup, role-invite, and share next steps.
 - **Contract (TypeSpec + ext types, first):** a `materialized` marker on each side (false at `scheduled`) and the first-use trigger shape (fires when the game first goes `live` / scoreboard published); the optional next-step entry points (link to lineup, invite-role, share) as non-blocking response fields.

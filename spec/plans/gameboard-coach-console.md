@@ -27,7 +27,7 @@ Order is dependency-ordered. Task 1 establishes the **gate** (account + head/ass
 
 **Verifies:** sports/gameboard-live/coach-console#ac:coach-cannot-append
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 Authorize the console (account + head/assistant-coach role) and provide the transport that carries proposals to the table crew without appending to the event log, including the per-role one-person collapse to a direct record/grant when the coach also holds the table role.
 
@@ -39,7 +39,7 @@ Authorize the console (account + head/assistant-coach role) and provide the tran
 
 **Verifies:** sports/gameboard-live/coach-console#ac:bench-shows-authoritative-oncourt
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Show the authoritative on-court list and available bench (lineup + substitution events) so the coach requests against accurate state, updating live when the scorekeeper records a substitution.
 
@@ -51,7 +51,7 @@ Show the authoritative on-court list and available bench (lineup + substitution 
 
 **Verifies:** sports/gameboard-live/coach-console#ac:coach-sees-player-stats
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Surface the [`players-list`](../features/sports/gameboard-live/players-list/README.md) in **team-internal mode** for the coach's own team — jersey #, name, points, personal fouls with foul-trouble flag, and minutes on court — regardless of public publish-consent.
 
@@ -63,7 +63,7 @@ Surface the [`players-list`](../features/sports/gameboard-live/players-list/READ
 
 **Verifies:** sports/gameboard-live/coach-console#ac:request-sub-recorded-by-scorekeeper
 **Depends-On:** 1, 2
-**Status:** pending
+**Status:** planning
 
 Let the coach propose an equal-count multi-player swap (off from on-court, on from bench) that only becomes an authoritative substitution event when the scorekeeper confirms — the coach console never appends it.
 
@@ -75,7 +75,7 @@ Let the coach propose an equal-count multi-player swap (off from on-court, on fr
 
 **Verifies:** sports/gameboard-live/coach-console#ac:request-timeout-granted-by-timekeeper
 **Depends-On:** 1, 2
-**Status:** pending
+**Status:** planning
 
 Let the coach request a timeout for their team that the timekeeper grants (decrement + countdown) — the coach console does not grant it itself.
 

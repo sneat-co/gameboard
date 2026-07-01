@@ -115,7 +115,7 @@ It asserts the **public read surfaces equal the deterministic fold of the append
 
 **Verifies:** sports/gameboard-live#ac:scorer-creates-game, sports/gameboard-live#ac:lineup-from-roster
 **Depends-On:** —
-**Status:** in-progress
+**Status:** in_progress
 
 A volunteer organizer creates a game (global `/ext/gameboard/games/{gameID}` record, Calendarius happening + eventus overlay) and confirms the present players from each team-space roster. Delivered by `gameboard-new-game` against the frozen `gameboard-event-timeline` contract; lineup is read from the team space ([`sneat-team`](../features/sports/sneat-team/README.md)). Integration-verifies that creation + lineup work end-to-end at the umbrella level.
 
@@ -125,7 +125,7 @@ A volunteer organizer creates a game (global `/ext/gameboard/games/{gameID}` rec
 
 **Verifies:** sports/gameboard-live#ac:live-score-and-clock
 **Depends-On:** 1
-**Status:** done
+**Status:** complete
 
 The official table crew drives live score and clock, each action an authorized append (via dalgo → Firestore) to `/ext/gameboard/games/{gameID}/events`. Delivered by `gameboard-scorekeeper-console` ∥ `gameboard-timekeeper-console`; this task verifies the umbrella's live-update behavior over the frozen timeline.
 
@@ -135,7 +135,7 @@ The official table crew drives live score and clock, each action an authorized a
 
 **Verifies:** sports/gameboard-live#ac:public-scoreboard-no-login, sports/gameboard-live#ac:big-screen-mode
 **Depends-On:** 2
-**Status:** done
+**Status:** complete
 
 A public, no-login scoreboard — including the TV/projector big-screen mode — renders the deterministic fold of the timeline. Delivered by `gameboard-scoreboard` (+ `gameboard-spectator-screen` as the spectator surface); verifies the public read path.
 
@@ -145,7 +145,7 @@ A public, no-login scoreboard — including the TV/projector big-screen mode —
 
 **Verifies:** sports/gameboard-live#ac:account-follow-records-edge, sports/gameboard-live#ac:follow-requires-account
 **Depends-On:** 3
-**Status:** done
+**Status:** complete
 
 Signing in to follow a team/player writes a follow edge via the `linkage` facade behind [`account-gate`](../features/sports/account-gate/README.md); anonymous viewers can read/share but cannot follow. Delivered by `gameboard-spectator-screen`; verifies the follow atom and its account gate.
 
@@ -155,7 +155,7 @@ Signing in to follow a team/player writes a follow edge via the `linkage` facade
 
 **Verifies:** sports/gameboard-live#ac:minor-shown-minimally
 **Depends-On:** 3
-**Status:** done
+**Status:** complete
 
 Public surfaces show a minor without publish-consent by jersey number only. Delivered by `gameboard-players-list`'s consent modes, consumed by `gameboard-scoreboard` / `gameboard-spectator-screen` / `gameboard-post-game-recap`; verifies minor-safe rendering on the public read path.
 

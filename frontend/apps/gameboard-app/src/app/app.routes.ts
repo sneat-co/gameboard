@@ -87,6 +87,37 @@ export const appRoutes: Route[] = [
     data: { title: 'New game' },
   },
   {
+    // Chess hub — `/chess`. The chess MVP's on-ramp: pick pass-and-play,
+    // vs-computer, or OTB clock+record, a time control, and start. Like
+    // new-game, anonymous-friendly — no auth required to play; games are
+    // saved locally regardless of sign-in (see chess-game-store.ts).
+    path: 'chess',
+    loadComponent: () =>
+      import('./chess/chess-hub-page.component').then(
+        (m) => m.ChessHubPageComponent,
+      ),
+    data: { title: 'Chess' },
+  },
+  {
+    // Saved chess games list — `/chess/games`. Declared before the `:gameId`
+    // route below so the literal `games` segment isn't shadowed.
+    path: 'chess/games',
+    loadComponent: () =>
+      import('./chess/chess-games-list-page.component').then(
+        (m) => m.ChessGamesListPageComponent,
+      ),
+    data: { title: 'Chess games' },
+  },
+  {
+    // The live/recap play surface for one chess game — `/chess/play/:gameId`.
+    path: 'chess/play/:gameId',
+    loadComponent: () =>
+      import('./chess/chess-play-page.component').then(
+        (m) => m.ChessPlayPageComponent,
+      ),
+    data: { title: 'Chess' },
+  },
+  {
     // Space-scoped routes host the template pages, mirroring sneat-app's
     // space/:spaceType/:spaceID mount point.
     path: 'space/:spaceType/:spaceID',

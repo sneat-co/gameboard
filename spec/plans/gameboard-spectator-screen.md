@@ -33,7 +33,7 @@ Order is dependency-ordered into four slices: the public no-login live surface f
 
 **Verifies:** sports/gameboard-live/spectator-screen#ac:renders-live-no-login, sports/gameboard-live/spectator-screen#ac:single-surface-adapts
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 The base spectator page: a single responsive surface that renders the live scoreboard composition over the event-timeline projection, openable by anyone with no Sneat account, updating in near-real-time with a freshness indication, adapting layout courtside-vs-remote while sharing one behavior and data source.
 - **Contract (TypeSpec + ext types, first):** in `api4gameboard.tsp`, the public read-only `LiveGameView` model (score, clock, period, phase, freshness) and a no-auth `getLiveGame(gameID)` + live-subscription operation; freeze the `gameboard-ext/backend` Go structs + `@sneat/extension-gameboard-contract` TS types.
@@ -44,7 +44,7 @@ The base spectator page: a single responsive surface that renders the live score
 
 **Verifies:** sports/gameboard-live/spectator-screen#ac:player-stats-list
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 From the live surface a viewer opens the players-list in public mode — per-player jersey #, name, points, personal fouls (+ foul-trouble), and minutes on court for both teams — with a minor without publish-consent shown by jersey number only.
 - **Contract (TypeSpec + ext types, first):** the public `PlayerStatsView` model (jersey #, name, points, personalFouls, foulTrouble, minutes) and a no-auth `getPlayersList(gameID)`; encode the consent-redaction shape (consent-permitted fields only) in the contract.
@@ -55,7 +55,7 @@ From the live surface a viewer opens the players-list in public mode — per-pla
 
 **Verifies:** sports/gameboard-live/spectator-screen#ac:follow-via-profile, sports/gameboard-live/spectator-screen#ac:react-with-budget
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Turn watching into participation: tappable team/player names open their profile pages (where one-tap follow lives — no follow buttons on the live screen), and a 🔥 control attached to the last scoring play sends a scarce reaction that decrements the viewer's budget and appears on the live feed without altering the authoritative score.
 - **Contract (TypeSpec + ext types, first):** the `sendReaction(gameID, scoringPlayRef)` write returning remaining budget + feed delta, and the follow-edge write shape; both marked account-gated. Reactions and follow are light writes owned here.
@@ -66,7 +66,7 @@ Turn watching into participation: tappable team/player names open their profile 
 
 **Verifies:** sports/gameboard-live/spectator-screen#ac:surface-follows-phase, sports/gameboard-live/spectator-screen#ac:venue-extras-on-site-only, sports/gameboard-live/spectator-screen#ac:minor-safe-public
 **Depends-On:** 1, 2, 3
-**Status:** pending
+**Status:** planning
 
 The surface adapts to the event-timeline phase and routes to the right engagement loop (pre-game: fixture info + venue/directions + predictions entry + per-team RSVP + Share game; live: scoreboard + reactions + follow-via-names; final: MVP-voting entry + recap link); lights up venue extras only for on-site viewers; and keeps the whole surface public/no-login for viewing while gating every mutation, honouring minor consent everywhere.
 - **Contract (TypeSpec + ext types, first):** the `phase` enum mapping (`scheduled`→pre-game; `live`/`halftime`/`overtime`→live; `final`→final; `cancelled`→terminal) on `LiveGameView`, a `venueContext` field (resolved from QR/deep-link origin or explicit "I'm here", NOT geolocation), and the phase-gated entry-point descriptors (predictions / RSVP / share / MVP-voting / recap links) — all viewable anonymously, each act account-gated.

@@ -34,7 +34,7 @@ Within each task the order is **contract-first**: (1) freeze the contract — Ty
 
 **Verifies:** sports/gameboard-live/event-timeline#ac:append-immutable-ordered, sports/gameboard-live/event-timeline#ac:vocabulary-covers-official-events
 **Depends-On:** —
-**Status:** done
+**Status:** complete
 
 > Progress (2026-06-24): `gameboard-ext` `typespec/api4gameboard.tsp` freezes the `Event` envelope + full vocabulary + idempotent `append`/`list`/`state` ops; `gameboard-ext/backend/eventtimeline` hand-implements the Go model + ordering (wall-clock, ties by `eventID`) + idempotent dedupe at **100% coverage**; `gameboard/backend` Append service + **HTTP API** (`POST …/events` → `201`/`200 already-processed`) enforces EventID idempotency over a **dalgo store** at `/ext/gameboard/games/{gameID}/events/{eventID}` (append-only, Get-then-Set; idempotency key = doc key). Tested against `dalgo2memory` + an HTTP full-game journey test. **Remaining:** the Firestore-backed dalgo DB (production config swap; in-memory today) and the `@sneat/extension-gameboard-internal` Angular typed append client (the framework-agnostic types live in the contract lib).
 
@@ -47,7 +47,7 @@ Establish the append-only, ordered event store and the single shared typed event
 
 **Verifies:** sports/gameboard-live/event-timeline#ac:only-authorized-source-appends, sports/gameboard-live/event-timeline#ac:correction-is-appended-not-edited
 **Depends-On:** 1
-**Status:** done
+**Status:** complete
 
 > Progress (2026-06-24): `gameboard/backend` enforces a per-source authority matrix (scorekeeper → score/foul/substitution; timekeeper → clock/period/possession/timeout/status; judge → ruling/correction; consensus → plays when no crew); unauthorized appends rejected with `ErrUnauthorizedSource` (HTTP 403); corrections are append-only and the fold nets void/amend without editing history (verified backend + TS via the parity oracle). Tested at ≥85% (gameboard pkg) / 100% (contract reducer). **Decision/stub (recorded):** the real per-game role lookup belongs to the `sneat-team`/`roles` substrate, which is spec-only today, so authority resolves against a static `Source→EventType` map keyed by the event's declared `source` (HTTP layer trusts the body's `source`); wire to the bearer-token-identity → per-game-role lookup when that substrate ships.
 
@@ -60,7 +60,7 @@ Gate *who* may append and represent every void/amend/ruling as a new appended ev
 
 **Verifies:** sports/gameboard-live/event-timeline#ac:state-is-deterministic-fold
 **Depends-On:** 1, 2
-**Status:** done
+**Status:** complete
 
 > Done (2026-06-24): `eventtimeline.Fold` in the **contract** module (the shared reducer on the boundary) computes the deterministic projection — status, period, running clock, per-side score/fouls/timeouts, possession, on-court lineup — in wall-clock order with correction-netting; score equals the sum of non-voided score events; shuffled-arrival folds are byte-identical. The **TS reducer** (`@sneat/extension-gameboard-contract`) mirrors it and is proven equal via the shared `parity/parity.json` oracle (Go `parity_test.go` + vitest both assert against it). Go 100% coverage; TS 9/9 green; CI green. *(Remaining nicety, not blocking this AC: `fold-to` as-of-`eventID` reads — the as-of-wall-clock read is contract-defined.)*
 
@@ -73,7 +73,7 @@ Derive the current official game state as a deterministic fold over the log (in 
 
 **Verifies:** sports/gameboard-live/event-timeline#ac:live-stream-in-order, sports/gameboard-live/event-timeline#ac:final-record-readable-with-both-clocks
 **Depends-On:** 1, 3
-**Status:** pending
+**Status:** planning
 
 > Progress (2026-06-24): the complete/as-of **record read** is served — `Service.Events` returns the log in wall-clock order with both clock stamps (`gameClockMs` + `wallClockMs`) on every event. **Remaining:** the live ordered **stream** (Firestore snapshot subscription) + the as-of-wall-clock filter, which depend on the dalgo→Firestore adapter (next bootstrap step).
 

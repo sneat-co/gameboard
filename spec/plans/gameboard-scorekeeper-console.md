@@ -36,7 +36,7 @@ Order is dependency-ordered. The **authority gate (Task 1)** comes first — not
 
 **Verifies:** sports/gameboard-live/scorekeeper-console#ac:console-requires-account-and-role
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 Operating the console requires a sneat.app account and the score-sheet-keeper game-day role; the write boundary accepts an authorized scorekeeper's appends and refuses everyone else.
 - **Contract (TypeSpec + ext types, first):** in `api4gameboard.tsp`, define the authorization envelope for every scorekeeper append (game id, actor account, asserted game-day role) and the refusal response; freeze the score-sheet-keeper role constant in `gameboard-ext` (Go + `@sneat/extension-gameboard-contract`), consuming the frozen `gameboard-event-timeline` `source-authority` shape.
@@ -47,7 +47,7 @@ Operating the console requires a sneat.app account and the score-sheet-keeper ga
 
 **Verifies:** sports/gameboard-live/scorekeeper-console#ac:record-attributed-basket
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 The scorekeeper records a basket for a team by point value and attributes it to an on-court scorer with an optional on-court assist, increasing the projected score.
 - **Contract (TypeSpec + ext types, first):** define the `ScoreEvent` payload (team space id, points ∈ {1,2,3}, scorer player ref, optional assist player ref) in `api4gameboard.tsp` + `gameboard-ext`, plus the record-basket append operation over the frozen event-timeline append.
@@ -58,7 +58,7 @@ The scorekeeper records a basket for a team by point value and attributes it to 
 
 **Verifies:** sports/gameboard-live/scorekeeper-console#ac:substitution-swaps-on-court, sports/gameboard-live/scorekeeper-console#ac:confirm-coach-substitution-request
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 The console maintains the authoritative on-court list as the fold of lineup + substitution events: an equal-count out/in swap that cannot confirm while counts differ, and confirming a pre-selected incoming coach substitution request.
 - **Contract (TypeSpec + ext types, first):** define the `SubstitutionEvent` payload (team space id, players-out refs, players-in refs) and both the standalone-swap and confirm-coach-request append operations in `api4gameboard.tsp` + `gameboard-ext`; specify the equal-count confirm precondition.
@@ -69,7 +69,7 @@ The console maintains the authoritative on-court list as the fold of lineup + su
 
 **Verifies:** sports/gameboard-live/scorekeeper-console#ac:score-for-subbed-in-player
 **Depends-On:** 2, 3
-**Status:** pending
+**Status:** planning
 
 When the scorer taps a basket for a player not on the on-court list, the console folds a substitution into the scoring flow, then attributes the basket to the now-on-court scorer.
 - **Contract (TypeSpec + ext types, first):** specify the inline flow as the composition of Task 3's `SubstitutionEvent` append followed by Task 2's `ScoreEvent` append (no new event type) and document the ordering guarantee in `api4gameboard.tsp` + `gameboard-ext`.
@@ -80,7 +80,7 @@ When the scorer taps a basket for a player not on the on-court list, the console
 
 **Verifies:** sports/gameboard-live/scorekeeper-console#ac:foul-increments-and-bonus
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 An individual foul on an on-court player increments that player's personal foul count and the team foul count; the projection shows the opponent in the bonus once the team-foul limit is reached.
 - **Contract (TypeSpec + ext types, first):** define the `FoulEvent` payload (team space id, fouling player ref) and the record-foul append operation in `api4gameboard.tsp` + `gameboard-ext`. The team-foul-limit/bonus **projection rule** (threshold + per-period reset) is owned by the [`gameboard-scoreboard`](gameboard-scoreboard.md) read-fold and referenced here — this console only appends the `FoulEvent`.
@@ -91,7 +91,7 @@ An individual foul on an on-court player increments that player's personal foul 
 
 **Verifies:** sports/gameboard-live/scorekeeper-console#ac:on-court-is-authoritative
 **Depends-On:** 3
-**Status:** pending
+**Status:** planning
 
 The on-court state recorded here is authoritative: when it diverges from a private play-time report, the official substitution takes precedence and play-time reconciles to it.
 - **Contract (TypeSpec + ext types, first):** expose the authoritative on-court fold (the deterministic projection of lineup + substitution events) as the canonical read in `api4gameboard.tsp` + `gameboard-ext`, marked as the `official-substitution-precedence` source for play-time.

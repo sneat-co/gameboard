@@ -31,7 +31,7 @@ Cross-plan dependencies consumed (not built here): the **final event-timeline re
 
 **Verifies:** sports/gameboard-live/post-game-recap#ac:recap-shows-summary, sports/gameboard-live/post-game-recap#ac:recap-minor-consent
 **Depends-On:** —
-**Status:** pending
+**Status:** planning
 
 Expose a public, no-account read that folds a `final` game's event log into the recap summary — final score with per-period breakdown, the public-mode box score, MVP + Opponents' Choice results, and badges earned — with the minor publish-consent filter applied to every player-identifying field.
 - **Contract (TypeSpec + ext types, first):** `RecapSummary` model (final score, per-period array, `BoxScoreRow[]` in points→assists→minutes order, MVP + Opponents'-Choice result, earned-badges list) and a public `getRecap(gameID)` operation in `api4gameboard.tsp`; freeze the matching `gameboard-ext/backend` Go types + `@sneat/extension-gameboard-contract` TS, including the per-field consent-restriction flag.
@@ -42,7 +42,7 @@ Expose a public, no-account read that folds a `final` game's event log into the 
 
 **Verifies:** sports/gameboard-live/post-game-recap#ac:recap-shows-score-progression
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Derive and render the score-progression chart (one line per team, x = game time, y = cumulative score) folded deterministically from the timeline's score events, plus the team ball-possession-share chart when possession-time was captured.
 - **Contract (TypeSpec + ext types, first):** extend `RecapSummary` (or a `getRecapCharts` projection) with a `ScoreProgressionSeries` (per-team time/score points) and an optional `PossessionShare` block, present only when possession data exists; freeze Go + TS types.
@@ -53,7 +53,7 @@ Derive and render the score-progression chart (one line per team, x = game time,
 
 **Verifies:** sports/gameboard-live/post-game-recap#ac:best-predictor-highlighted
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Surface the predictor whose locked prediction best called *this* game (single-game grading — closest outcome/score error), with a link to the predictors leaderboard, applying the predictions display/anonymisation rules to a minor predictor.
 - **Contract (TypeSpec + ext types, first):** a `BestPredictor` block on the recap projection (display name subject to anonymisation, the single-game call detail, leaderboard deep-link); freeze Go + TS types.
@@ -64,7 +64,7 @@ Surface the predictor whose locked prediction best called *this* game (single-ga
 
 **Verifies:** sports/gameboard-live/post-game-recap#ac:share-card-unfurls, sports/gameboard-live/post-game-recap#ac:recap-minor-consent
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Make the recap a share-optimised page: emit rich server-rendered Open-Graph/Twitter-card metadata + image (teams, final score, headline) that unfurls in Facebook/WhatsApp/Telegram, and offer a copy-able URL and QR — with no minor's consent-restricted field exposed in the card. Headline = final score, MVP as secondary line (resolves the `card-headline` Open Question).
 - **Contract (TypeSpec + ext types, first):** an `OgCardMeta` model (og/twitter tags, card image URL, share URL, QR payload) and the route that serves the metadata; freeze Go + TS types; specify the consent filter on every card field.
@@ -75,7 +75,7 @@ Make the recap a share-optimised page: emit rich server-rendered Open-Graph/Twit
 
 **Verifies:** sports/gameboard-live/post-game-recap#ac:recap-follow-no-login, sports/gameboard-live/post-game-recap#ac:recap-arrival-views-cannot-vote
 **Depends-On:** 1
-**Status:** pending
+**Status:** planning
 
 Present a no-login follow CTA that records a follow against an accountless follow identity in one tap, and present MVP/Opponents' Choice as results-to-view (no ballot) for post-final recap arrivals who are ineligible per `mvp-voting` voter-eligibility. The accountless follow is **not** an exception to the umbrella's `follow-requires-account` rule — it is the [`first-use-backprop`](../features/sports/first-use-backprop/README.md) **deferred-identity** path: the follow is recorded against a provisional identity that is claimed/upgraded to a real account on first use.
 - **Contract (TypeSpec + ext types, first):** a `followFromRecap(gameID, target)` operation keyed to an accountless follow identity (account-claim deferred to `first-use-backprop`), and a `canVote` eligibility flag on the recap projection; freeze Go + TS types.
