@@ -28,7 +28,10 @@ const path = Astro.url.pathname;
       </ul>
     </nav>
 
-    <a href="/#early-access" class="btn btn-primary header-cta">Join early access</a>
+    <!-- Sign in opens the Angular app's login page; the URL fragment is the
+         post-login redirect target, so signing in lands the user on their
+         games list (/app/my/games). -->
+    <a href="/app/login#/my/games" class="btn btn-primary header-cta">Sign in</a>
   </div>
 </header>
 

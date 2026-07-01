@@ -57,6 +57,9 @@ import { map } from 'rxjs';
       <ion-button expand="block" routerLink="/new-game">New game</ion-button>
 
       @if (isSignedIn()) {
+        <ion-button expand="block" fill="outline" routerLink="/my/games">
+          My games
+        </ion-button>
         <sneat-spaces-card />
       }
 

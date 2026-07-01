@@ -103,6 +103,23 @@ export const appRoutes: Route[] = [
     redirectTo: 'login',
   },
   {
+    // My games — `my/games`. The signed-in user's list of games they created,
+    // read directly from Firestore (createdBy == uid; the backend has no list
+    // endpoint). The landing "Sign in" link returns here after login, and it
+    // links onward to new-game (create) and each game's settings (manage).
+    // Auth-guarded; declared before `my` so it isn't shadowed.
+    path: 'my/games',
+    loadComponent: () =>
+      import('./my/games/my-games-page.component').then(
+        (m) => m.MyGamesPageComponent,
+      ),
+    canActivate: [AuthGuard],
+    data: {
+      title: 'My games',
+      authGuardPipe: () => redirectToLoginIfNotSignedIn,
+    },
+  },
+  {
     // User profile (linked auth accounts, country). Linked from the side menu's
     // sneat-auth-menu-item "signed in as" row. Guarded like the home page.
     path: 'my',

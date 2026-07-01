@@ -1,6 +1,18 @@
-import { inject, Injectable } from '@angular/core';
+import {
+  EnvironmentInjector,
+  inject,
+  Injectable,
+  runInInjectionContext,
+} from '@angular/core';
+import {
+  Firestore,
+  collection,
+  collectionData,
+  query,
+  where,
+} from '@angular/fire/firestore';
 import { SneatApiService } from '@sneat/api';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map, Observable } from 'rxjs';
 import { GameRecord, Side, UpdateGameSettings } from './new-game/game-contract';
 import {
   AppendResponse,
@@ -35,9 +47,30 @@ function isNotAuthenticatedError(err: unknown): boolean {
  * Endpoints are passed WITHOUT the `/v0/` prefix; SneatApiService prepends it
  * (the same way createGame does).
  */
+/**
+ * A game as read directly from Firestore for the "my games" list. Extends the
+ * wire `GameRecord` with the server-stamped `createdBy`/`createdAt` audit fields
+ * (present on the stored doc but not on the create/get HTTP contract) so the
+ * list can filter by owner and order newest-first.
+ */
+export interface MyGame extends GameRecord {
+  readonly createdBy?: string;
+  // Firestore Timestamp on read; we only ever compare it via toMillis().
+  readonly createdAt?: { toMillis?: () => number } | number | null;
+}
+
+/** Best-effort epoch-ms for a Firestore `createdAt` (Timestamp | number | null). */
+function createdAtMs(createdAt: MyGame['createdAt']): number {
+  if (!createdAt) return 0;
+  if (typeof createdAt === 'number') return createdAt;
+  return createdAt.toMillis?.() ?? 0;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GameService {
   private readonly api = inject(SneatApiService);
+  private readonly afs = inject(Firestore);
+  private readonly injector = inject(EnvironmentInjector);
 
   /**
    * Create a game from two inline sides + an optional scheduled time.
@@ -57,6 +90,35 @@ export class GameService {
         scheduledMs,
       }),
     );
+  }
+
+  /**
+   * Live list of the games a user created, read DIRECTLY from Firestore
+   * (`/ext/gameboard/games` where `createdBy == uid`) rather than via the Go
+   * backend. The backend exposes no list endpoint and its production store
+   * rejects queries (memcache wrapper), so the client queries Firestore itself —
+   * the same place the backend writes the records.
+   *
+   * Only an equality filter is used so no composite index is required; the list
+   * is ordered newest-first client-side. `idField: 'gameID'` fills `gameID` from
+   * each doc's key.
+   */
+  public watchMyGames(uid: string): Observable<MyGame[]> {
+    // AngularFire's collection()/collectionData() must run inside an Angular
+    // injection context. This method is called lazily from a switchMap (on auth
+    // emissions), i.e. OUTSIDE the construction-time context, so wrap it in the
+    // service's EnvironmentInjector — otherwise AngularFire throws NG0203.
+    return runInInjectionContext(this.injector, () => {
+      const games = collection(this.afs, 'ext', 'gameboard', 'games');
+      const myGames = query(games, where('createdBy', '==', uid));
+      return collectionData(myGames, { idField: 'gameID' }).pipe(
+        map((records) =>
+          (records as MyGame[])
+            .slice()
+            .sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt)),
+        ),
+      );
+    });
   }
 
   /**
