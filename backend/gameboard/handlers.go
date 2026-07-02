@@ -54,6 +54,11 @@ func (h *Handler) requireUser(w http.ResponseWriter, r *http.Request) (string, b
 //	POST /v0/api4gameboard/games/{gameID}/events  — append (authorized; idempotent)
 //	GET  /v0/api4gameboard/games/{gameID}/events  — read the ordered log
 //	GET  /v0/api4gameboard/games/{gameID}/state   — public deterministic fold
+//
+// The game-invites routes (basketball organize/invite/RSVP MVP — see
+// game_invite.go/game_invite_service.go) are distinct from the games/* routes
+// above: a GameInviteRecord is a coach's own team's game/practice + roster +
+// RSVPs, not a live-scored two-team match.
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v0/api4gameboard/games", h.createGame)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}", h.getGame)
@@ -62,6 +67,13 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/events", h.list)
 	mux.HandleFunc("GET /v0/api4gameboard/games/{gameID}/state", h.state)
 	mux.HandleFunc("POST /v0/api4gameboard/follows", h.follow)
+
+	mux.HandleFunc("POST /v0/api4gameboard/game-invites", h.createGameInvite)
+	mux.HandleFunc("GET /v0/api4gameboard/game-invites", h.listMyGameInvites)
+	mux.HandleFunc("GET /v0/api4gameboard/game-invites/by-token/{token}", h.getGameInviteByToken)
+	mux.HandleFunc("POST /v0/api4gameboard/game-invites/by-token/{token}/rsvp", h.submitRsvpByToken)
+	mux.HandleFunc("GET /v0/api4gameboard/game-invites/{gameInviteID}", h.getGameInvite)
+	mux.HandleFunc("POST /v0/api4gameboard/game-invites/{gameInviteID}/roster", h.addRosterPlayer)
 }
 
 // followRequest is the body of POST /v0/api4gameboard/follows.
@@ -227,6 +239,194 @@ func (h *Handler) state(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, st)
+}
+
+// --- game-invites (basketball organize/invite/RSVP MVP) ---
+
+// gameInviteRosterPlayerRequest is the wire shape of one roster player before
+// a playerId is assigned (mirrors CreateRosterPlayerInput).
+type gameInviteRosterPlayerRequest struct {
+	Name         string `json:"name"`
+	Jersey       string `json:"jersey,omitempty"`
+	GuardianName string `json:"guardianName,omitempty"`
+}
+
+// createGameInviteRequest is the body of POST /v0/api4gameboard/game-invites.
+type createGameInviteRequest struct {
+	Sport         Sport                           `json:"sport"`
+	TeamName      string                          `json:"teamName"`
+	OpponentName  string                          `json:"opponentName,omitempty"`
+	ScheduledMs   int64                           `json:"scheduledMs"`
+	Venue         string                          `json:"venue,omitempty"`
+	PlayersNeeded int                             `json:"playersNeeded"`
+	Recurring     RecurringSchedule               `json:"recurring"`
+	OrganizerName string                          `json:"organizerName"`
+	Roster        []gameInviteRosterPlayerRequest `json:"roster"`
+}
+
+// createGameInvite organizes a new game/practice for the caller's own team —
+// the "organize a game" step (roadmap doc MVP item 1). AUTHENTICATED: the
+// organizer must be signed in (organizerUID is stamped from the bearer token).
+func (h *Handler) createGameInvite(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requireUser(w, r)
+	if !ok {
+		return
+	}
+	var body createGameInviteRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid game-invite body")
+		return
+	}
+	roster := make([]CreateRosterPlayerInput, 0, len(body.Roster))
+	for _, p := range body.Roster {
+		roster = append(roster, CreateRosterPlayerInput{Name: p.Name, Jersey: p.Jersey, GuardianName: p.GuardianName})
+	}
+	g, err := h.svc.CreateGameInvite(r.Context(), userID, CreateGameInviteInput{
+		Sport: body.Sport, TeamName: body.TeamName, OpponentName: body.OpponentName,
+		ScheduledMs: body.ScheduledMs, Venue: body.Venue, PlayersNeeded: body.PlayersNeeded,
+		Recurring: body.Recurring, OrganizerName: body.OrganizerName, Roster: roster,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidGameInvite):
+			writeError(w, http.StatusBadRequest, "invalid_game_invite", "team name is required")
+		default:
+			writeError(w, http.StatusInternalServerError, "internal", "failed to create game invite")
+		}
+		return
+	}
+	writeJSON(w, http.StatusCreated, g)
+}
+
+// getGameInvite reads a game invite by id — the organizer/roster console
+// read. PUBLIC — no auth required (account-gate: "reads are free").
+func (h *Handler) getGameInvite(w http.ResponseWriter, r *http.Request) {
+	g, err := h.svc.GameInvite(r.Context(), r.PathValue("gameInviteID"))
+	if err != nil {
+		if errors.Is(err, ErrGameInviteNotFound) {
+			writeError(w, http.StatusNotFound, "not_found", "game invite not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "internal", "failed to read game invite")
+		return
+	}
+	writeJSON(w, http.StatusOK, g)
+}
+
+// addRosterPlayer adds one player to an existing game invite's roster.
+//
+// PUBLIC/anon-friendly by design: this mirrors the frontend's existing
+// anon-first UX — the organizer console's "add a player" AND the RSVP page's
+// "not on the list? add my kid" both call this today with no sign-in. This
+// knowingly relaxes account-gate's strict "every mutation requires an
+// account" invariant until sneat.team's real roster/consent model ships
+// (roadmap doc §7, "minor-consent granularity for the roster itself" —
+// tracked as an open question, not silently ignored).
+func (h *Handler) addRosterPlayer(w http.ResponseWriter, r *http.Request) {
+	var body gameInviteRosterPlayerRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid player body")
+		return
+	}
+	g, err := h.svc.AddRosterPlayer(r.Context(), r.PathValue("gameInviteID"), CreateRosterPlayerInput{Name: body.Name, Jersey: body.Jersey, GuardianName: body.GuardianName})
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrGameInviteNotFound):
+			writeError(w, http.StatusNotFound, "not_found", "game invite not found")
+		case errors.Is(err, ErrInvalidGameInvite):
+			writeError(w, http.StatusBadRequest, "invalid_player", "player name is required")
+		default:
+			writeError(w, http.StatusInternalServerError, "internal", "failed to add player")
+		}
+		return
+	}
+	writeJSON(w, http.StatusCreated, g)
+}
+
+// gameInviteByTokenResponse is the wire shape of
+// GET /v0/api4gameboard/game-invites/by-token/{token}.
+type gameInviteByTokenResponse struct {
+	Game           GameInviteRecord `json:"game"`
+	TargetPlayerID string           `json:"targetPlayerId,omitempty"`
+}
+
+// getGameInviteByToken resolves an anonymous invite-link visit. PUBLIC — no
+// auth required; this is the anon-first RSVP page's entry read (mirrors
+// eventius's links.Resolve(token) pattern, rsvp_handlers.go).
+func (h *Handler) getGameInviteByToken(w http.ResponseWriter, r *http.Request) {
+	res, err := h.svc.GameInviteByToken(r.Context(), r.PathValue("token"))
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidToken):
+			writeError(w, http.StatusBadRequest, "invalid_token", "this invite link looks broken")
+		case errors.Is(err, ErrGameInviteNotFound):
+			writeError(w, http.StatusNotFound, "not_found", "game invite not found")
+		default:
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve invite")
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, gameInviteByTokenResponse{Game: res.Game, TargetPlayerID: res.TargetPlayerID})
+}
+
+// submitRsvpByTokenRequest is the body of
+// POST /v0/api4gameboard/game-invites/by-token/{token}/rsvp.
+type submitRsvpByTokenRequest struct {
+	PlayerID    string     `json:"playerId"`
+	Status      RsvpStatus `json:"status"`
+	RespondedBy string     `json:"respondedBy"`
+	Note        string     `json:"note,omitempty"`
+}
+
+// submitRsvpByToken records a parent-proxy RSVP against a link token.
+//
+// ANONYMOUS-FRIENDLY (mirrors eventius's POST rsvp/{token}, rsvp_handlers.go
+// submitRsvp): no bearer token is required to RSVP. If a valid bearer token IS
+// supplied it is captured as respondedByUID purely for the best-effort
+// participant-index enrichment (Service.SubmitRsvpByToken) — an absent or
+// invalid token never blocks the RSVP.
+func (h *Handler) submitRsvpByToken(w http.ResponseWriter, r *http.Request) {
+	var body submitRsvpByTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid rsvp body")
+		return
+	}
+	respondedByUID, _ := h.identity.UserID(r.Context(), bearerToken(r)) // optional; "" when anonymous
+	g, err := h.svc.SubmitRsvpByToken(r.Context(), r.PathValue("token"), respondedByUID, SubmitRsvpInput{
+		PlayerID: body.PlayerID, Status: body.Status, RespondedBy: body.RespondedBy, Note: body.Note,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidToken):
+			writeError(w, http.StatusBadRequest, "invalid_token", "this invite link looks broken")
+		case errors.Is(err, ErrGameInviteNotFound):
+			writeError(w, http.StatusNotFound, "not_found", "game invite not found")
+		case errors.Is(err, ErrPlayerNotFound):
+			writeError(w, http.StatusBadRequest, "player_not_found", "pick which kid this RSVP is for")
+		case errors.Is(err, ErrInvalidGameInvite):
+			writeError(w, http.StatusBadRequest, "invalid_rsvp", "invalid RSVP")
+		default:
+			writeError(w, http.StatusInternalServerError, "internal", "failed to save rsvp")
+		}
+		return
+	}
+	writeJSON(w, http.StatusCreated, g)
+}
+
+// listMyGameInvites lists the games the caller organizes + has RSVP'd to.
+// AUTHENTICATED — an anonymous visitor has no stable identity to list
+// "my games" against.
+func (h *Handler) listMyGameInvites(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.requireUser(w, r)
+	if !ok {
+		return
+	}
+	games, err := h.svc.MyGameInvites(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal", "failed to list game invites")
+		return
+	}
+	writeJSON(w, http.StatusOK, games)
 }
 
 func writeJSON(w http.ResponseWriter, code int, body any) {

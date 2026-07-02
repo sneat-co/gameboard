@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -39,7 +40,12 @@ import {
   Sport,
   WEEKDAYS,
 } from './game-invite-contract';
-import { createGameInvite } from './game-invite-store';
+import { GameInviteService } from './game-invite.service';
+import {
+  clearOrganizeGameDraft,
+  loadOrganizeGameDraft,
+  saveOrganizeGameDraft,
+} from './organize-game-draft';
 
 /** One roster row while the organizer is still building the team list, before
  * a playerId is assigned (that happens on submit, in the store). */
@@ -53,13 +59,17 @@ interface DraftPlayer {
 // roster fills" loop (backstage/docs/roadmaps/gameboard-game-invites.md MVP
 // item 1). Distinct from ../new-game (two competing teams + a scoreboard
 // game): this is a coach setting up THEIR team's game/practice + roster, the
-// youth-basketball anchor scenario. Anon-first like new-game/chess (no auth
-// guard) so a coach can try it with zero friction; a non-blocking sign-in
-// hint is shown for parity with new-game's UX, but — because this whole
-// feature is a localStorage-backed prototype (see game-invite-store.ts) —
-// creating does not require signing in the way the real account-gated
-// new-game flow does (see spec REQ:account-creator, which the real facade
-// swap would enforce).
+// youth-basketball anchor scenario.
+//
+// Anon-first FILLING, gated CREATING — same shape as ../new-game/
+// new-game-page.component.ts: the form itself has no auth guard (fill in
+// freely, no sign-in wall up front) and every field is drafted to
+// localStorage (organize-game-draft.ts) so a redirect through sign-in never
+// loses input. Persisting the game DOES require an authenticated organizer
+// (the backend's POST /v0/api4gameboard/game-invites stamps organizerUID
+// from the bearer token and 401s an anonymous caller — see
+// gameboard/backend/gameboard/handlers.go createGameInvite), so tapping
+// "Create" while signed out routes through /login first and resumes here.
 @Component({
   selector: 'gameboard-organize-game-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -360,6 +370,7 @@ export class OrganizeGamePageComponent {
   private readonly router = inject(Router);
   private readonly authStateService = inject(SneatAuthStateService);
   private readonly toasts = inject(ToastController);
+  private readonly gameInviteService = inject(GameInviteService);
 
   protected readonly sports = SPORTS;
   protected readonly weekdays = WEEKDAYS;
@@ -402,12 +413,62 @@ export class OrganizeGamePageComponent {
     () => !this.teamNameInvalid() && !this.scheduleInvalid(),
   );
 
+  constructor() {
+    // Rehydrate the most-recent draft so an anonymous coach who was routed
+    // through sign-in (create() below) resumes where they left off — same
+    // round-trip guarantee as new-game-page's anon-first-new-game draft.
+    const draft = loadOrganizeGameDraft();
+    if (draft) {
+      if (draft.sport) this.sport.set(draft.sport);
+      if (draft.teamName !== undefined) this.teamName.set(draft.teamName);
+      if (draft.opponentName !== undefined)
+        this.opponentName.set(draft.opponentName);
+      if (draft.date !== undefined) this.date.set(draft.date);
+      if (draft.time !== undefined) this.time.set(draft.time);
+      if (draft.venue !== undefined) this.venue.set(draft.venue);
+      if (draft.playersNeeded !== undefined)
+        this.playersNeeded.set(draft.playersNeeded);
+      if (draft.recurring) {
+        this.recurringEnabled.set(draft.recurring.enabled);
+        if (draft.recurring.weekday)
+          this.recurringWeekday.set(draft.recurring.weekday);
+        if (draft.recurring.time) this.recurringTime.set(draft.recurring.time);
+      }
+      if (draft.roster?.length) this.roster.set(draft.roster);
+    }
+
+    // Auto-save every field change as the single most-recent draft — no
+    // explicit save action, mirroring new-game-page's effect().
+    effect(() =>
+      saveOrganizeGameDraft({
+        sport: this.sport(),
+        teamName: this.teamName(),
+        opponentName: this.opponentName(),
+        date: this.date(),
+        time: this.time(),
+        venue: this.venue(),
+        playersNeeded: this.playersNeeded(),
+        recurring: {
+          enabled: this.recurringEnabled(),
+          ...(this.recurringEnabled()
+            ? { weekday: this.recurringWeekday(), time: this.recurringTime() }
+            : {}),
+        },
+        roster: this.roster(),
+      }),
+    );
+  }
+
   protected signIn(): void {
+    this.goToLogin('Sign in to organize with your sneat.team roster.');
+  }
+
+  /** Navigate to /login (returning to /game-invites/new afterwards). Mirrors
+   * new-game-page's goToLogin. */
+  private goToLogin(reason: string): void {
     void this.router.navigate(['/login'], {
       fragment: '/game-invites/new',
-      queryParams: {
-        reason: 'Sign in to organize with your sneat.team roster.',
-      },
+      queryParams: { reason },
     });
   }
 
@@ -437,10 +498,21 @@ export class OrganizeGamePageComponent {
       this.showErrors.set(true);
       return;
     }
+    // Persisting a game requires authentication (the backend stamps
+    // organizerUID from the bearer token — see this component's class doc).
+    // The draft stays local; nothing is sent to the backend until the coach
+    // returns signed in and taps "Create" again (mirrors new-game-page's
+    // anonymous-create-routes-through-signin behaviour).
+    if (!this.isSignedIn()) {
+      this.goToLogin(
+        'Sign in to create your game — it will be linked to your account so you can manage it.',
+      );
+      return;
+    }
     this.submitting.set(true);
     try {
       const scheduledMs = Date.parse(`${this.date()}T${this.time()}`);
-      const doc = createGameInvite({
+      const doc = await this.gameInviteService.createGameInvite({
         sport: this.sport(),
         teamName: this.teamName().trim(),
         opponentName: this.opponentName().trim() || undefined,
@@ -460,12 +532,15 @@ export class OrganizeGamePageComponent {
           guardianName: p.guardianName || undefined,
         })),
       });
+      // The game is now persisted server-side; drop the local draft.
+      clearOrganizeGameDraft();
       await this.router.navigate(['/game-invites', doc.gameId], {
         replaceUrl: true,
       });
     } catch {
       // Never fail silently on a user-initiated create (states.md "surface
-      // failures") — e.g. localStorage unavailable/full in private browsing.
+      // failures") — e.g. a network error or a 401 if the session expired
+      // mid-form.
       const toast = await this.toasts.create({
         message: 'Could not create the game. Please try again.',
         duration: 4000,

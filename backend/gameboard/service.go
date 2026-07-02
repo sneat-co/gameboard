@@ -21,13 +21,15 @@ var ErrNotAuthorized = errors.New("gameboard: not authorized")
 
 // Service appends authorized events and serves the deterministic fold.
 type Service struct {
-	store   EventStore
-	games   GameStore   // optional; set when the store also persists game records
-	follows FollowStore // optional; set when the store also persists follow edges
+	store       EventStore
+	games       GameStore       // optional; set when the store also persists game records
+	follows     FollowStore     // optional; set when the store also persists follow edges
+	gameInvites GameInviteStore // optional; set when the store also persists game-invite aggregates
 }
 
 // NewService wires a Service over an EventStore. If the store also implements
-// GameStore / FollowStore (the dalgo store does), those capabilities are enabled.
+// GameStore / FollowStore / GameInviteStore (the dalgo store does), those
+// capabilities are enabled.
 func NewService(store EventStore) *Service {
 	s := &Service{store: store}
 	if gs, ok := store.(GameStore); ok {
@@ -35,6 +37,9 @@ func NewService(store EventStore) *Service {
 	}
 	if fs, ok := store.(FollowStore); ok {
 		s.follows = fs
+	}
+	if gis, ok := store.(GameInviteStore); ok {
+		s.gameInvites = gis
 	}
 	return s
 }
