@@ -105,6 +105,18 @@ function formatSchedule(ms: number): string {
         </ion-button>
       } @else if (loading()) {
         <ion-spinner name="dots" data-testid="loading" />
+      } @else if (error()) {
+        <ion-text color="danger">
+          <p data-testid="games-error">{{ error() }}</p>
+        </ion-text>
+        <ion-button
+          fill="outline"
+          size="small"
+          (click)="retry()"
+          data-testid="retry-games"
+        >
+          Retry
+        </ion-button>
       } @else if (games().length === 0) {
         <ion-text color="medium">
           <p data-testid="empty-games">
@@ -155,18 +167,27 @@ export class GameInvitesListPageComponent {
   );
 
   protected readonly loading = signal(true);
+  /** Fetch failure — distinct from the empty state so a network/server error
+   * never masquerades as "No organized games yet." (states.md tri-state). */
+  protected readonly error = signal<string | undefined>(undefined);
   protected readonly games = signal<
     { doc: GameInviteDoc; emoji: string; fillLabel: string }[]
   >([]);
 
+  /** Bumped by retry() so the loading effect below re-runs. */
+  private readonly reloadTrigger = signal(0);
+
   constructor() {
     effect(() => {
+      this.reloadTrigger(); // re-run this load when retry() bumps it
       if (!this.isSignedIn()) {
         this.games.set([]);
+        this.error.set(undefined);
         this.loading.set(false);
         return;
       }
       this.loading.set(true);
+      this.error.set(undefined);
       this.gameInviteService.listMyGameInvites().then(
         (docs) => {
           this.games.set(
@@ -179,11 +200,21 @@ export class GameInvitesListPageComponent {
           this.loading.set(false);
         },
         () => {
-          this.games.set([]);
+          // Fable refactoring: was `this.games.set([]);` only — a fetch
+          // failure rendered as the "No organized games yet" empty state
+          // (error masquerading as empty). Set a distinct error instead,
+          // rendered with a Retry button.
+          this.error.set(
+            'Could not load your games — check your connection and retry.',
+          );
           this.loading.set(false);
         },
       );
     });
+  }
+
+  protected retry(): void {
+    this.reloadTrigger.set(this.reloadTrigger() + 1);
   }
 
   protected signIn(): void {

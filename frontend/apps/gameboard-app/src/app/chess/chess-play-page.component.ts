@@ -120,8 +120,8 @@ function toMovePairs(history: readonly ChessMoveRecord[]): MovePair[] {
               Finished game — {{ resultSummary() }}
             } @else {
               Read-only view of an in-progress game (reloading the page doesn't
-              resume the live clock in this MVP — resign or start a new game to
-              keep playing).
+              resume the live clock in this MVP — use the resign buttons below
+              to finish it, or start a new game).
             }
           </ion-note>
         }
@@ -173,7 +173,11 @@ function toMovePairs(history: readonly ChessMoveRecord[]): MovePair[] {
           }
         </div>
 
-        @if (viewMode() === 'live' && !isOver()) {
+        <!-- Resign is offered for ANY unfinished game — live or an
+             in-progress recap after a mid-game reload. Without the recap
+             branch a reloaded game was permanently unfinishable (stuck
+             "In progress" in the list) despite the banner promising resign. -->
+        @if (!isOver()) {
           <div class="actions">
             <ion-button fill="outline" color="danger" (click)="resign('w')"
               >{{ doc.players.white }} resigns</ion-button
@@ -181,6 +185,11 @@ function toMovePairs(history: readonly ChessMoveRecord[]): MovePair[] {
             <ion-button fill="outline" color="danger" (click)="resign('b')"
               >{{ doc.players.black }} resigns</ion-button
             >
+            @if (viewMode() === 'recap') {
+              <ion-button fill="outline" routerLink="/chess"
+                >New game</ion-button
+              >
+            }
           </div>
         }
 
@@ -505,10 +514,35 @@ export class ChessPlayPageComponent {
   }
 
   protected resign(color: ChessColor): void {
-    if (this.viewMode() !== 'live' || !this.match || this.isOver()) return;
-    this.match.resign(color);
-    this.refreshFromMatch();
-    this.finalize();
+    if (this.isOver()) return;
+    if (this.viewMode() === 'live' && this.match) {
+      this.match.resign(color);
+      this.refreshFromMatch();
+      this.finalize();
+      return;
+    }
+    this.resignFromRecap(color);
+  }
+
+  /** Resign an in-progress game reopened in recap mode (after a mid-game
+   * reload there is no live ChessMatch), completing the persisted doc
+   * directly so the game doesn't stay unfinishable forever. */
+  private resignFromRecap(color: ChessColor): void {
+    const d = this.doc();
+    if (!d || d.status !== 'in-progress') return;
+    const updated: ChessGameDoc = {
+      ...d,
+      status: 'complete',
+      result: color === 'w' ? '0-1' : '1-0',
+      endReason: 'resignation',
+      flaggedOrResignedSide: color,
+      updatedAt: Date.now(),
+    };
+    saveChessGame(updated);
+    this.doc.set(updated);
+    this.isOver.set(true);
+    const winner = color === 'w' ? d.players.black : d.players.white;
+    this.resultSummary.set(`${winner} wins by resignation`);
   }
 
   private persist(): void {
