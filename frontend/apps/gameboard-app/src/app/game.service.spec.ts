@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Firestore } from '@angular/fire/firestore';
 import { SneatApiService } from '@sneat/api';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
@@ -21,6 +22,10 @@ function configure(post: ReturnType<typeof vi.fn>): {
     providers: [
       GameService,
       { provide: SneatApiService, useValue: { post, postAsAnonymous } },
+      // GameService eagerly injects Firestore for the "my games" list
+      // (getMyGames), which these appendEvent tests never exercise. Provide a
+      // stub so the DI graph resolves without a live AngularFire Firestore.
+      { provide: Firestore, useValue: {} },
     ],
   });
   return { post, postAsAnonymous };
