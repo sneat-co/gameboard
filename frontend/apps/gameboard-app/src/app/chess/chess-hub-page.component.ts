@@ -125,28 +125,46 @@ const MODES: readonly ModeOption[] = [
           </div>
           <ion-note>{{ selectedModeHint() }}</ion-note>
 
-          <!-- Step 2 — time control. -->
+          <!-- Step 2 — time control. ion-chip has no built-in 'button' prop,
+               so (click) alone renders a non-focusable, keyboard-inoperable
+               element — made operable with tabindex/role/keydown, copying the
+               RSVP page's radio-chip pattern (rsvp-page.component.ts). -->
           <div class="section">
             <ion-note>Time control</ion-note>
-            <div class="chips">
+            <div class="chips" role="radiogroup" aria-label="Time control">
               <ion-chip
                 [color]="presetId() === 'untimed' ? 'primary' : 'medium'"
                 [outline]="presetId() !== 'untimed'"
+                tabindex="0"
+                role="radio"
+                [attr.aria-checked]="presetId() === 'untimed'"
                 (click)="presetId.set('untimed')"
+                (keydown.enter)="presetId.set('untimed')"
+                (keydown.space)="$event.preventDefault(); presetId.set('untimed')"
                 >Untimed</ion-chip
               >
               @for (p of presets; track p.id) {
                 <ion-chip
                   [color]="presetId() === p.id ? 'primary' : 'medium'"
                   [outline]="presetId() !== p.id"
+                  tabindex="0"
+                  role="radio"
+                  [attr.aria-checked]="presetId() === p.id"
                   (click)="presetId.set(p.id)"
+                  (keydown.enter)="presetId.set(p.id)"
+                  (keydown.space)="$event.preventDefault(); presetId.set(p.id)"
                   >{{ p.label }}</ion-chip
                 >
               }
               <ion-chip
                 [color]="presetId() === 'custom' ? 'primary' : 'medium'"
                 [outline]="presetId() !== 'custom'"
+                tabindex="0"
+                role="radio"
+                [attr.aria-checked]="presetId() === 'custom'"
                 (click)="presetId.set('custom')"
+                (keydown.enter)="presetId.set('custom')"
+                (keydown.space)="$event.preventDefault(); presetId.set('custom')"
                 >Custom</ion-chip
               >
             </div>
@@ -184,27 +202,42 @@ const MODES: readonly ModeOption[] = [
                 />
               </ion-item>
               <ion-note>Play as</ion-note>
-              <div class="chips">
+              <div class="chips" role="radiogroup" aria-label="Play as">
                 <ion-chip
                   [color]="humanColor() === 'w' ? 'primary' : 'medium'"
                   [outline]="humanColor() !== 'w'"
+                  tabindex="0"
+                  role="radio"
+                  [attr.aria-checked]="humanColor() === 'w'"
                   (click)="humanColor.set('w')"
+                  (keydown.enter)="humanColor.set('w')"
+                  (keydown.space)="$event.preventDefault(); humanColor.set('w')"
                   >White</ion-chip
                 >
                 <ion-chip
                   [color]="humanColor() === 'b' ? 'primary' : 'medium'"
                   [outline]="humanColor() !== 'b'"
+                  tabindex="0"
+                  role="radio"
+                  [attr.aria-checked]="humanColor() === 'b'"
                   (click)="humanColor.set('b')"
+                  (keydown.enter)="humanColor.set('b')"
+                  (keydown.space)="$event.preventDefault(); humanColor.set('b')"
                   >Black</ion-chip
                 >
               </div>
               <ion-note>Stockfish strength</ion-note>
-              <div class="chips">
+              <div class="chips" role="radiogroup" aria-label="Stockfish strength">
                 @for (l of levels; track l.id) {
                   <ion-chip
                     [color]="levelId() === l.id ? 'primary' : 'medium'"
                     [outline]="levelId() !== l.id"
+                    tabindex="0"
+                    role="radio"
+                    [attr.aria-checked]="levelId() === l.id"
                     (click)="levelId.set(l.id)"
+                    (keydown.enter)="levelId.set(l.id)"
+                    (keydown.space)="$event.preventDefault(); levelId.set(l.id)"
                     >{{ l.label }}</ion-chip
                   >
                 }
