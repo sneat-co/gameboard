@@ -1,5 +1,13 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import {
   IonButton,
   IonButtons,
@@ -10,12 +18,14 @@ import {
   IonList,
   IonMenuButton,
   IonNote,
+  IonSpinner,
   IonText,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
-import { SPORTS } from './game-invite-contract';
-import { listGameInvites } from './game-invite-store';
+import { SneatAuthStateService } from '@sneat/auth-core';
+import { GameInviteDoc, SPORTS } from './game-invite-contract';
+import { GameInviteService } from './game-invite.service';
 import { computeRosterFillForDoc } from './roster-fill';
 
 /** Format an epoch-ms as a short local date/time, or '' when unset. */
@@ -28,11 +38,18 @@ function formatSchedule(ms: number): string {
 }
 
 /**
- * "My games" for the game-invites feature — `game-invites` — the organized
- * games saved on this device (see game-invite-store.ts). Distinct from the
- * existing auth-guarded `/my/games` (the two-team scoreboard `GameRecord`
- * list read from Firestore); this list is local-storage-backed like the chess
- * games list, so it works with no sign-in, matching the rest of this feature.
+ * "My games" for the game-invites feature — `game-invites` — the games the
+ * signed-in user organizes or has RSVP'd to (GameInviteService.
+ * listMyGameInvites → GET /v0/api4gameboard/game-invites, AUTHENTICATED per
+ * game_invite.go's listMyGameInvites handler). Distinct from the existing
+ * auth-guarded `/my/games` (the two-team scoreboard `GameRecord` list read
+ * from Firestore directly).
+ *
+ * Unlike the organize/roster/RSVP pages, this list has NO anon-first path —
+ * "my games" needs a stable identity to list against, so a signed-out
+ * visitor sees a sign-in prompt instead of an empty list (the necessary
+ * consequence of swapping the per-device localStorage list for a real
+ * per-account backend list).
  */
 @Component({
   selector: 'gameboard-game-invites-list-page',
@@ -50,6 +67,7 @@ function formatSchedule(ms: number): string {
     IonItem,
     IonLabel,
     IonNote,
+    IonSpinner,
     IonText,
   ],
   template: `
@@ -71,10 +89,26 @@ function formatSchedule(ms: number): string {
         🏀 Organize a game
       </ion-button>
 
-      @if (games().length === 0) {
+      @if (!isSignedIn()) {
+        <ion-text color="medium">
+          <p data-testid="signin-required">
+            Sign in to see the games you organize or have RSVP'd to.
+          </p>
+        </ion-text>
+        <ion-button
+          expand="block"
+          fill="outline"
+          (click)="signIn()"
+          data-testid="signin"
+        >
+          Sign in
+        </ion-button>
+      } @else if (loading()) {
+        <ion-spinner name="dots" data-testid="loading" />
+      } @else if (games().length === 0) {
         <ion-text color="medium">
           <p data-testid="empty-games">
-            No organized games on this device yet. Tap
+            No organized games yet. Tap
             <strong>Organize a game</strong> to invite your roster.
           </p>
         </ion-text>
@@ -111,13 +145,53 @@ function formatSchedule(ms: number): string {
   `,
 })
 export class GameInvitesListPageComponent {
-  protected readonly games = signal(
-    listGameInvites().map((doc) => ({
-      doc,
-      emoji: SPORTS.find((s) => s.id === doc.sport)?.emoji ?? '🎮',
-      fillLabel: computeRosterFillForDoc(doc).fillLabel,
-    })),
+  private readonly router = inject(Router);
+  private readonly authStateService = inject(SneatAuthStateService);
+  private readonly gameInviteService = inject(GameInviteService);
+
+  protected readonly isSignedIn = toSignal(
+    this.authStateService.authStatus.pipe(map((s) => s === 'authenticated')),
+    { initialValue: false },
   );
+
+  protected readonly loading = signal(true);
+  protected readonly games = signal<
+    { doc: GameInviteDoc; emoji: string; fillLabel: string }[]
+  >([]);
+
+  constructor() {
+    effect(() => {
+      if (!this.isSignedIn()) {
+        this.games.set([]);
+        this.loading.set(false);
+        return;
+      }
+      this.loading.set(true);
+      this.gameInviteService.listMyGameInvites().then(
+        (docs) => {
+          this.games.set(
+            docs.map((doc) => ({
+              doc,
+              emoji: SPORTS.find((s) => s.id === doc.sport)?.emoji ?? '🎮',
+              fillLabel: computeRosterFillForDoc(doc).fillLabel,
+            })),
+          );
+          this.loading.set(false);
+        },
+        () => {
+          this.games.set([]);
+          this.loading.set(false);
+        },
+      );
+    });
+  }
+
+  protected signIn(): void {
+    void this.router.navigate(['/login'], {
+      fragment: '/game-invites',
+      queryParams: { reason: 'Sign in to see your organized games.' },
+    });
+  }
 
   protected formatSchedule(ms: number): string {
     return formatSchedule(ms);

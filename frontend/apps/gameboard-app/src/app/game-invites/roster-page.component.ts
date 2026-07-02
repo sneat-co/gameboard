@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -25,13 +26,14 @@ import {
   IonLabel,
   IonList,
   IonNote,
+  IonSpinner,
   IonTitle,
   IonToolbar,
   ToastController,
 } from '@ionic/angular/standalone';
-import { SPORTS } from './game-invite-contract';
+import { GameInviteDoc, SPORTS } from './game-invite-contract';
 import { buildInviteLink } from './invite-token';
-import { addRosterPlayer, getGameInvite } from './game-invite-store';
+import { GameInviteService } from './game-invite.service';
 import {
   computeRosterFill,
   computeRosterFillForDoc,
@@ -43,9 +45,9 @@ import {
  * creating a game: invite links (open + per-player), the fill count, and the
  * roster grouped going/maybe/out/no-reply (the roadmap doc MVP item 4).
  *
- * This is a localStorage-only prototype (see game-invite-store.ts) with no
- * live listener, so a "Refresh" action re-reads the store — standing in for
- * what would be a real-time rsvp-express/eventius subscription once that
+ * Reads/writes go through GameInviteService (the real HTTP backend) with no
+ * live listener, so a "Refresh" action re-fetches — standing in for what
+ * would be a real-time rsvp-express/eventius subscription once that
  * write-back is wired for real.
  */
 @Component({
@@ -71,9 +73,14 @@ import {
     IonList,
     IonNote,
     IonButton,
+    IonSpinner,
   ],
   template: `
-    @if (doc(); as doc) {
+    @if (loading()) {
+      <ion-content class="ion-padding">
+        <ion-spinner name="dots" data-testid="loading" />
+      </ion-content>
+    } @else if (doc(); as doc) {
       <ion-header>
         <ion-toolbar>
           <ion-buttons slot="start">
@@ -261,21 +268,46 @@ import {
 export class RosterPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly toasts = inject(ToastController);
+  private readonly gameInviteService = inject(GameInviteService);
 
   private readonly gameId = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('gameId') ?? '')),
     { initialValue: this.route.snapshot.paramMap.get('gameId') ?? '' },
   );
 
-  // Bumped on every mutating action to force a re-read from the store —
+  // Bumped on every mutating action to force a re-fetch from the backend —
   // stands in for a real-time subscription (see class doc).
   private readonly version = signal(0);
 
-  protected readonly doc = computed(() => {
-    this.version();
-    const id = this.gameId();
-    return id ? getGameInvite(id) : null;
-  });
+  protected readonly doc = signal<GameInviteDoc | null>(null);
+  protected readonly loading = signal(true);
+
+  constructor() {
+    effect(() => {
+      const id = this.gameId();
+      this.version(); // re-run on every refresh()/mutation, not just navigation
+      if (!id) {
+        this.doc.set(null);
+        this.loading.set(false);
+        return;
+      }
+      this.loading.set(true);
+      this.gameInviteService.getGameInvite(id).then(
+        (d) => {
+          this.doc.set(d);
+          this.loading.set(false);
+        },
+        () => {
+          // 404 (removed/never existed) or a network error — either way the
+          // template's "not found" branch covers it (states.md's not-found
+          // state doubles as the offline/error state here, same as the
+          // localStorage-era "not found on this device" copy it replaces).
+          this.doc.set(null);
+          this.loading.set(false);
+        },
+      );
+    });
+  }
 
   protected readonly fill = computed(() => {
     const doc = this.doc();
@@ -330,19 +362,30 @@ export class RosterPageComponent {
     this.version.update((v) => v + 1);
   }
 
-  protected addPlayer(): void {
+  protected async addPlayer(): Promise<void> {
     const name = this.draftName().trim();
     const id = this.gameId();
     if (!name || !id) return;
-    addRosterPlayer(id, {
-      name,
-      jersey: this.draftJersey().trim() || undefined,
-      guardianName: this.draftGuardian().trim() || undefined,
-    });
-    this.draftName.set('');
-    this.draftJersey.set('');
-    this.draftGuardian.set('');
-    this.refresh();
+    try {
+      await this.gameInviteService.addRosterPlayer(id, {
+        name,
+        jersey: this.draftJersey().trim() || undefined,
+        guardianName: this.draftGuardian().trim() || undefined,
+      });
+      this.draftName.set('');
+      this.draftJersey.set('');
+      this.draftGuardian.set('');
+      this.refresh();
+    } catch {
+      // Never fail silently on a user-initiated add (states.md "surface
+      // failures").
+      const toast = await this.toasts.create({
+        message: 'Could not add the player. Please try again.',
+        duration: 4000,
+        color: 'danger',
+      });
+      await toast.present();
+    }
   }
 
   protected async copyOpenLink(): Promise<void> {

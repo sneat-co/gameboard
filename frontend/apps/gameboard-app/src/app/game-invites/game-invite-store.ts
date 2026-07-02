@@ -1,5 +1,17 @@
 // Persistence for organized games + their roster + RSVPs.
 //
+// SUPERSEDED (kept intact, never deleted): the organize/roster-console/anon-
+// RSVP/my-games pages now call ./game-invite.service.ts's GameInviteService,
+// which hits the real gameboard-invites HTTP backend (gameboard/backend/
+// gameboard/game_invite.go — see backstage/docs/roadmaps/
+// gameboard-game-invites.md §8.2 Phase 1) instead of localStorage. The
+// functions below still work standalone (game-invite-store.spec.ts still
+// exercises them) and `CreateGameInviteInput` is reused as-is by the new
+// service — but no page component imports the mutating functions
+// (createGameInvite/saveGameInvite/addRosterPlayer/setRsvp/deleteGameInvite)
+// any more. `getMyInviteeName`/`setMyInviteeName` ARE still used by the RSVP
+// page (purely local — no backend concept needed for "remember my name").
+//
 // Fable: swap to the real chain the roadmap doc's reuse table lays out —
 // Calendarius happening (schedule) + eventius overlay + invitus (invite
 // delivery) + rsvp-express sport-events write-back (roster/RSVP) + sneat.team

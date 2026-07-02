@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -29,15 +30,10 @@ import {
   IonToolbar,
   ToastController,
 } from '@ionic/angular/standalone';
-import { inviteTeaser, RsvpStatus } from './game-invite-contract';
+import { GameInviteDoc, inviteTeaser, RsvpStatus } from './game-invite-contract';
 import { decodeInviteToken } from './invite-token';
-import {
-  addRosterPlayer,
-  getGameInvite,
-  getMyInviteeName,
-  setMyInviteeName,
-  setRsvp,
-} from './game-invite-store';
+import { getMyInviteeName, setMyInviteeName } from './game-invite-store';
+import { GameInviteService } from './game-invite.service';
 import { computeRosterFill, computeRosterFillForDoc } from './roster-fill';
 
 const STATUSES: readonly { id: RsvpStatus; label: string }[] = [
@@ -92,7 +88,9 @@ const STATUSES: readonly { id: RsvpStatus; label: string }[] = [
     </ion-header>
 
     <ion-content class="ion-padding">
-      @if (!doc()) {
+      @if (loading()) {
+        <ion-spinner name="dots" data-testid="loading" />
+      } @else if (!doc()) {
         <ion-note data-testid="invalid-invite">{{
           tokenInvalid()
             ? 'This invite link looks broken.'
@@ -286,6 +284,7 @@ export class RsvpPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastController);
+  private readonly gameInviteService = inject(GameInviteService);
 
   protected readonly statuses = STATUSES;
 
@@ -294,16 +293,15 @@ export class RsvpPageComponent {
     { initialValue: this.route.snapshot.paramMap.get('token') ?? '' },
   );
 
+  // Quick client-side sanity check (does this even parse?) — instant, no
+  // network round-trip, mirrors the pre-swap behaviour. The actual game data
+  // always comes from the backend's by-token resolution below (the token's
+  // playerId is only ever a hint the server also honours).
   private readonly payload = computed(() => decodeInviteToken(this.token()));
   protected readonly tokenInvalid = computed(() => this.payload() === null);
 
-  private readonly version = signal(0);
-
-  protected readonly doc = computed(() => {
-    this.version();
-    const payload = this.payload();
-    return payload ? getGameInvite(payload.gameId) : null;
-  });
+  protected readonly doc = signal<GameInviteDoc | null>(null);
+  protected readonly loading = signal(true);
 
   protected readonly fill = computed(() => {
     const doc = this.doc();
@@ -327,11 +325,34 @@ export class RsvpPageComponent {
   protected readonly confirmed = signal(false);
 
   constructor() {
-    // Pre-select the targeted player from the link, if any (role-invites'
-    // targeted-invite pattern); an open link leaves it unset so the parent
-    // picks from the roster or adds their kid.
-    const targeted = this.payload()?.playerId;
-    if (targeted) this.selectedPlayerId.set(targeted);
+    // Resolve the token against the real backend (GET .../game-invites/
+    // by-token/{token}, anonymous) — replaces the old synchronous localStorage
+    // read. A malformed token (tokenInvalid) skips the network call entirely.
+    effect(() => {
+      const token = this.token();
+      if (!token || this.tokenInvalid()) {
+        this.doc.set(null);
+        this.loading.set(false);
+        return;
+      }
+      this.loading.set(true);
+      this.gameInviteService.getGameInviteByToken(token).then(
+        (res) => {
+          this.doc.set(res.game);
+          this.loading.set(false);
+          // Pre-select the targeted player from the link, if any
+          // (role-invites' targeted-invite pattern) — but only if the parent
+          // hasn't already picked someone else via pickDifferentKid().
+          if (res.targetPlayerId && this.selectedPlayerId() === null) {
+            this.selectedPlayerId.set(res.targetPlayerId);
+          }
+        },
+        () => {
+          this.doc.set(null);
+          this.loading.set(false);
+        },
+      );
+    });
   }
 
   protected selectedPlayerName(): string {
@@ -359,50 +380,50 @@ export class RsvpPageComponent {
     const doc = this.doc();
     if (!doc) return;
 
-    let playerId = this.selectedPlayerId();
-    if (this.addingNew()) {
-      const name = this.newKidName().trim();
-      if (!name) {
-        this.showError.set(true);
-        this.errorMessage.set("Enter your kid's name.");
-        return;
-      }
-      const updated = addRosterPlayer(doc.gameId, {
-        name,
-        guardianName: this.guardianName().trim() || undefined,
-      });
-      playerId = updated?.roster[updated.roster.length - 1]?.playerId ?? null;
-    }
-    if (!playerId) {
-      this.showError.set(true);
-      this.errorMessage.set('Pick which kid this RSVP is for.');
-      return;
-    }
-
     this.submitting.set(true);
     this.showError.set(false);
     try {
-      setMyInviteeName(this.guardianName());
-      const result = setRsvp(
-        doc.gameId,
-        playerId,
-        this.status(),
-        this.guardianName() || getMyInviteeName(),
-        this.note(),
-      );
-      if (!result) {
+      let playerId = this.selectedPlayerId();
+      if (this.addingNew()) {
+        const name = this.newKidName().trim();
+        if (!name) {
+          this.showError.set(true);
+          this.errorMessage.set("Enter your kid's name.");
+          return;
+        }
+        const updated = await this.gameInviteService.addRosterPlayer(
+          doc.gameId,
+          { name, guardianName: this.guardianName().trim() || undefined },
+        );
+        playerId =
+          updated.roster[updated.roster.length - 1]?.playerId ?? null;
+        this.doc.set(updated);
+      }
+      if (!playerId) {
         this.showError.set(true);
-        this.errorMessage.set('Could not save your RSVP. Please try again.');
+        this.errorMessage.set('Pick which kid this RSVP is for.');
         return;
       }
+
+      setMyInviteeName(this.guardianName());
+      const result = await this.gameInviteService.submitRsvpByToken(
+        this.token(),
+        {
+          playerId,
+          status: this.status(),
+          respondedBy: this.guardianName() || getMyInviteeName(),
+          note: this.note(),
+        },
+      );
+      this.doc.set(result);
       this.selectedPlayerId.set(playerId);
-      this.version.update((v) => v + 1);
       this.confirmed.set(true);
     } catch {
-      // Unexpected failure (not the handled "game/player not found" case
-      // above) — never fail silently on the highest-conversion page in the
-      // flow (states.md "surface failures"). The inline message covers
-      // expected validation; the toast catches everything else.
+      // Unexpected failure (not the handled "pick a kid" validation above) —
+      // never fail silently on the highest-conversion page in the flow
+      // (states.md "surface failures"). The inline message covers expected
+      // validation; the toast catches everything else (network/backend
+      // errors, e.g. a 400 if the roster changed underneath the parent).
       this.showError.set(true);
       this.errorMessage.set('Could not save your RSVP. Please try again.');
       const toast = await this.toasts.create({
